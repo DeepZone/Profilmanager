@@ -43,6 +43,26 @@ def _get_profile_dependency_counts(profile_id: int) -> dict[str, int]:
     }
 
 
+def _get_profile_merge_request_status_counts(profile_id: int) -> dict[str, int]:
+    opened = GitLabMergeRequest.query.filter_by(profile_id=profile_id, status="opened").count()
+    merged = GitLabMergeRequest.query.filter_by(profile_id=profile_id, status="merged").count()
+    return {"opened": opened, "merged": merged}
+
+
+def _get_profile_delete_block_reason(profile: Profile) -> str | None:
+    mr_status_counts = _get_profile_merge_request_status_counts(profile.id)
+    if mr_status_counts["opened"] > 1:
+        return (
+            "Profil kann nur gelöscht werden, wenn kein oder nur ein offener Merge Request "
+            "vorhanden ist."
+        )
+
+    if mr_status_counts["merged"] > 0 and not current_user.is_admin:
+        return "Gemergte Profile dürfen nur von einem Admin gelöscht werden."
+
+    return None
+
+
 def _apply_country_metadata(profile: Profile, selected_iso_code: str) -> None:
     country = get_country_by_iso_code(selected_iso_code)
     if not country:
@@ -355,6 +375,11 @@ def delete(profile_id):
     profile = Profile.query.get_or_404(profile_id)
     if not _can_access_profile(profile):
         abort(403)
+
+    delete_block_reason = _get_profile_delete_block_reason(profile)
+    if delete_block_reason:
+        flash(delete_block_reason, "danger")
+        return redirect(url_for("profiles.detail", profile_id=profile.id))
 
     delete_dependencies = request.form.get("delete_dependencies") == "1"
     keep_dependencies = request.form.get("keep_dependencies") == "1"
