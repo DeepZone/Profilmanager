@@ -2,6 +2,7 @@ import hashlib
 import os
 import uuid
 from pathlib import Path
+from typing import Iterable
 
 from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
@@ -34,3 +35,17 @@ class StorageService:
             "sha256": hasher.hexdigest(),
             "mime_type": uploaded_file.mimetype,
         }
+
+    def delete_files(self, stored_paths: Iterable[str]) -> None:
+        for stored_path in stored_paths:
+            path = Path(stored_path)
+            try:
+                path.unlink()
+            except FileNotFoundError:
+                continue
+
+            try:
+                if path.parent != self.root and path.parent.is_dir() and not any(path.parent.iterdir()):
+                    path.parent.rmdir()
+            except OSError:
+                continue

@@ -20,4 +20,41 @@
     </table>
   </div>
 </div>
+
+{% if current_user.is_admin %}
+<div class="card mt-4">
+  <div class="card-header"><h3 class="card-title">Verwaiste Dateien</h3></div>
+  <div class="card-body table-responsive p-0">
+    <table class="table table-striped">
+      <thead><tr><th>ID</th><th>Dateiname</th><th>Pfad</th><th>Hochgeladen</th><th></th></tr></thead>
+      <tbody>
+      {% for orphan in orphan_files %}
+        <tr>
+          <td>{{ orphan.id }}</td>
+          <td>{{ orphan.original_filename }}</td>
+          <td><code>{{ orphan.stored_path }}</code></td>
+          <td>{{ orphan.uploaded_at.strftime('%d.%m.%Y %H:%M') }}</td>
+          <td>
+            <form method="post" action="{{ url_for('profiles.delete_orphan_file', file_id=orphan.id) }}" style="display:inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button
+                type="submit"
+                class="btn btn-sm btn-danger"
+                onclick="return confirm('Verwaiste Datei wirklich löschen?')"
+              >
+                Löschen
+              </button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr>
+          <td colspan="5" class="text-muted">Keine verwaisten Dateien vorhanden.</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
 {% endblock %}
