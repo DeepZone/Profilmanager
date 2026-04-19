@@ -67,9 +67,7 @@ class Profile(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
     owner = db.relationship("User", back_populates="profiles")
-    files = db.relationship(
-        "ProfileFile", back_populates="profile", cascade="all, delete-orphan"
-    )
+    files = db.relationship("ProfileFile", back_populates="profile")
     merge_requests = db.relationship("GitLabMergeRequest", back_populates="profile")
 
 
@@ -77,7 +75,9 @@ class ProfileFile(db.Model):
     __tablename__ = "profile_files"
 
     id = db.Column(db.Integer, primary_key=True)
-    profile_id = db.Column(db.Integer, db.ForeignKey("profiles.id"), nullable=False)
+    profile_id = db.Column(
+        db.Integer, db.ForeignKey("profiles.id", ondelete="SET NULL"), nullable=True
+    )
     version = db.Column(db.Integer, nullable=False)
     original_filename = db.Column(db.String(255), nullable=False)
     stored_path = db.Column(db.String(500), nullable=False)
@@ -104,7 +104,9 @@ class GitLabMergeRequest(db.Model):
     __tablename__ = "gitlab_merge_requests"
 
     id = db.Column(db.Integer, primary_key=True)
-    profile_id = db.Column(db.Integer, db.ForeignKey("profiles.id"), nullable=False)
+    profile_id = db.Column(
+        db.Integer, db.ForeignKey("profiles.id", ondelete="SET NULL"), nullable=True
+    )
     created_by = db.Column(
         db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )

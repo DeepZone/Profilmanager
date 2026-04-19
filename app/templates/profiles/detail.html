@@ -19,9 +19,18 @@
       <p><b>Kommentar:</b> {{ profile.comment }}</p>
       <p><b>Aktuelle Version:</b> {{ profile.current_version }}</p>
       <a class="btn btn-secondary" href="{{ url_for('profiles.edit', profile_id=profile.id) }}">Bearbeiten</a>
-      <form method="post" action="{{ url_for('profiles.delete', profile_id=profile.id) }}" style="display:inline">
+      <form
+        method="post"
+        action="{{ url_for('profiles.delete', profile_id=profile.id) }}"
+        style="display:inline"
+        id="delete-profile-form"
+        data-file-count="{{ dependency_counts.dateien }}"
+        data-mr-count="{{ dependency_counts.merge_requests }}"
+      >
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button class="btn btn-danger" onclick="return confirm('Profil wirklich löschen?')">Löschen</button>
+        <input type="hidden" name="delete_dependencies" id="delete-dependencies" value="0">
+        <input type="hidden" name="keep_dependencies" id="keep-dependencies" value="0">
+        <button type="submit" class="btn btn-danger">Löschen</button>
       </form>
       <hr>
       <h5>Dateiversionen</h5>
@@ -51,4 +60,53 @@
   </div>
 </div>
 </div>
+<script>
+  (() => {
+    const deleteForm = document.getElementById("delete-profile-form");
+    if (!deleteForm) return;
+
+    deleteForm.addEventListener("submit", (event) => {
+      const fileCount = Number(deleteForm.dataset.fileCount || 0);
+      const mrCount = Number(deleteForm.dataset.mrCount || 0);
+      const totalDependencies = fileCount + mrCount;
+      const deleteDependenciesInput = document.getElementById("delete-dependencies");
+      const keepDependenciesInput = document.getElementById("keep-dependencies");
+
+      deleteDependenciesInput.value = "0";
+      keepDependenciesInput.value = "0";
+
+      if (totalDependencies === 0) {
+        if (!window.confirm("Profil wirklich löschen?")) {
+          event.preventDefault();
+        }
+        return;
+      }
+
+      const dependencyDescription =
+        `${fileCount} Datei(en), ${mrCount} Merge Request(s)`;
+
+      if (
+        window.confirm(
+          `Es sind noch abhängige Daten vorhanden (${dependencyDescription}). ` +
+          "Sollen diese ebenfalls gelöscht werden?"
+        )
+      ) {
+        deleteDependenciesInput.value = "1";
+        return;
+      }
+
+      if (
+        window.confirm(
+          `Abhängige Daten bleiben erhalten (${dependencyDescription}). ` +
+          "Soll nur das Profil gelöscht werden?"
+        )
+      ) {
+        keepDependenciesInput.value = "1";
+        return;
+      }
+
+      event.preventDefault();
+    });
+  })();
+</script>
 {% endblock %}
