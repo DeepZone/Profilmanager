@@ -26,12 +26,20 @@
       <nav class="mt-2">
         <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
           <li class="nav-item"><a href="{{ url_for('dashboard.index') }}" class="nav-link">Dashboard</a></li>
-          <li class="nav-item"><a href="{{ url_for('users.me') }}" class="nav-link">Mein Benutzerprofil</a></li>
+
+          <li class="nav-header">PROFILE</li>
           <li class="nav-item"><a href="{{ url_for('profiles.mine') }}" class="nav-link">Meine Profile</a></li>
-          <li class="nav-item"><a href="{{ url_for('profiles.all_profiles') }}" class="nav-link">Alle Profile</a></li>
           <li class="nav-item"><a href="{{ url_for('profiles.upload') }}" class="nav-link">Profil hochladen</a></li>
+          <li class="nav-item"><a href="{{ url_for('profiles.all_profiles') }}" class="nav-link">Alle Profile</a></li>
+
+          <li class="nav-header">ENTWICKLUNG</li>
           <li class="nav-item"><a href="{{ url_for('gitlab.index') }}" class="nav-link">Merge Requests</a></li>
+
+          <li class="nav-header">KONTO</li>
+          <li class="nav-item"><a href="{{ url_for('users.me') }}" class="nav-link">Mein Benutzerprofil</a></li>
+
           {% if current_user.is_admin %}
+          <li class="nav-header">ADMINISTRATION</li>
           <li class="nav-item"><a href="{{ url_for('users.index') }}" class="nav-link">Benutzerverwaltung</a></li>
           <li class="nav-item"><a href="{{ url_for('settings.gitlab') }}" class="nav-link">GitLab-Konfiguration</a></li>
           {% endif %}
