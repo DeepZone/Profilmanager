@@ -3,6 +3,7 @@ from datetime import datetime
 
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, send_file, url_for
 from flask_login import current_user, login_required
+from sqlalchemy.exc import IntegrityError
 
 from app.extensions import db
 from app.forms import ProfileEditForm, ProfileForm, PushToGitLabForm
@@ -156,6 +157,35 @@ def edit(profile_id):
         return redirect(url_for("profiles.detail", profile_id=profile.id))
 
     return render_template("profiles/edit.html", profile=profile, form=form)
+
+
+@profiles_bp.route("/<int:profile_id>/delete", methods=["POST"])
+@login_required
+def delete(profile_id):
+    profile = Profile.query.get_or_404(profile_id)
+    if not _can_access_profile(profile):
+        abort(403)
+
+    db.session.delete(profile)
+    db.session.add(
+        AuditLog(
+            user_id=current_user.id,
+            action="profile_delete",
+            details=f"Profil {profile.id} gelöscht",
+        )
+    )
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        flash(
+            "Profil kann nicht gelöscht werden, da noch abhängige Daten vorhanden sind.",
+            "danger",
+        )
+        return redirect(url_for("profiles.detail", profile_id=profile.id))
+
+    flash("Profil gelöscht.", "success")
+    return redirect(url_for("profiles.mine"))
 
 
 @profiles_bp.route("/push", methods=["POST"])
