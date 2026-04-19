@@ -122,15 +122,36 @@ def _push_profile_file_to_gitlab(
         if "already exists" not in str(exc):
             raise
 
-    with open(profile_file.stored_path, "rb") as file_obj:
-        encoded = base64.b64encode(file_obj.read()).decode()
+    _commit_profile_file_to_gitlab(
+        service=service,
+        resolved_project_id=resolved_project_id,
+        branch_name=branch_name,
+        profile=profile,
+        profile_file=profile_file,
+        commit_message=commit_message,
+    )
 
+    mr = service.create_merge_request(
+        resolved_project_id,
+        branch_name,
+        target_branch,
+        mr_title,
+    )
+    return mr, resolved_project_id, branch_name, target_branch
+
+
+def _ensure_repo_directories(
+    service: GitLabService,
+    resolved_project_id: int,
+    branch_name: str,
+    profile: Profile,
+    profile_file: ProfileFile,
+) -> None:
     repo_paths = build_repo_paths(
         profile.dial_code,
         profile.provider or profile.name,
         profile_file.original_filename,
     )
-
     for directory_key in ("gui_importe", "providerprofile", "tr069_nachlader"):
         keep_file_path = f"{repo_paths[directory_key]}/.gitkeep"
         try:
@@ -145,11 +166,64 @@ def _push_profile_file_to_gitlab(
             if "already exists" not in str(exc):
                 raise
 
-    repo_path = repo_paths["upload_path"]
+
+def _commit_profile_file_to_gitlab(
+    service: GitLabService,
+    resolved_project_id: int,
+    branch_name: str,
+    profile: Profile,
+    profile_file: ProfileFile,
+    commit_message: str,
+) -> None:
+    with open(profile_file.stored_path, "rb") as file_obj:
+        encoded = base64.b64encode(file_obj.read()).decode()
+
+    _ensure_repo_directories(service, resolved_project_id, branch_name, profile, profile_file)
+    repo_path = build_repo_paths(
+        profile.dial_code,
+        profile.provider or profile.name,
+        profile_file.original_filename,
+    )["upload_path"]
     try:
         service.commit_file(resolved_project_id, branch_name, repo_path, encoded, commit_message)
     except GitLabServiceError:
         service.update_file(resolved_project_id, branch_name, repo_path, encoded, commit_message)
+
+
+def _push_profile_files_to_gitlab(
+    profile: Profile,
+    profile_files: list[ProfileFile],
+    commit_message: str,
+    mr_title: str,
+    project_id: int | None = None,
+):
+    if not profile_files:
+        raise ValueError("Keine Profildateien zum Push vorhanden.")
+
+    service = _get_gitlab_service_or_raise()
+    resolved_project_id = project_id if project_id is not None else _resolve_project_id()
+    branch_name = build_branch_name(
+        current_user.shortcode,
+        profile.dial_code,
+        profile.provider or profile.name,
+    )
+    target_branch = "main"
+
+    try:
+        service.create_branch(resolved_project_id, branch_name, target_branch)
+    except GitLabServiceError as exc:
+        if "already exists" not in str(exc):
+            raise
+
+    for profile_file in profile_files:
+        _commit_profile_file_to_gitlab(
+            service=service,
+            resolved_project_id=resolved_project_id,
+            branch_name=branch_name,
+            profile=profile,
+            profile_file=profile_file,
+            commit_message=commit_message,
+        )
 
     mr = service.create_merge_request(
         resolved_project_id,
@@ -245,7 +319,6 @@ def upload():
         db.session.flush()
 
         storage = StorageService(current_app.config["UPLOAD_FOLDER"])
-        profile_file = None
         for version, uploaded_file in enumerate(uploaded_files, start=1):
             meta = storage.save_profile_upload(profile.id, version, uploaded_file)
             profile_file = ProfileFile(profile=profile, version=version, **meta)
@@ -261,11 +334,11 @@ def upload():
 
         if form.create_mr.data:
             try:
-                mr, project_id, branch_name, target_branch = _push_profile_file_to_gitlab(
+                mr, project_id, branch_name, target_branch = _push_profile_files_to_gitlab(
                     profile=profile,
-                    profile_file=profile_file,
-                    commit_message=f"Update profile {profile.name} v{profile_file.version}",
-                    mr_title=f"Profile update: {profile.name} v{profile_file.version}",
+                    profile_files=list(profile.files),
+                    commit_message=f"Update profile {profile.name} (initial upload)",
+                    mr_title=f"Profile update: {profile.name} (initial upload)",
                 )
                 db.session.add(
                     GitLabMergeRequest(
