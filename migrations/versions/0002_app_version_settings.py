@@ -35,7 +35,7 @@ def _insert_setting_if_missing(connection, key: str, value: str):
 def upgrade():
     connection = op.get_bind()
     _insert_setting_if_missing(connection, "app_version_major", "1")
-    _insert_setting_if_missing(connection, "app_version_minor", "0")
+    _insert_setting_if_missing(connection, "app_version_minor", "1")
     _insert_setting_if_missing(connection, "app_version_build", "0")
 
 
