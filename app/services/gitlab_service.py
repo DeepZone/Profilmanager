@@ -65,6 +65,14 @@ class GitLabService:
             },
         )
 
+    def delete_file(self, project_id: int, branch: str, file_path: str, message: str):
+        encoded = quote(file_path, safe="")
+        return self._request(
+            "DELETE",
+            f"/projects/{project_id}/repository/files/{encoded}",
+            data={"branch": branch, "commit_message": message},
+        )
+
     def create_merge_request(
         self, project_id: int, source_branch: str, target_branch: str, title: str
     ):

@@ -93,6 +93,7 @@ class ProfileForm(FlaskForm):
         "Profildatei (.tar)",
         validators=[FileRequired(), FileAllowed(["tar"], "Nur .tar-Dateien erlaubt")],
     )
+    create_mr = BooleanField("Nach Upload direkt Merge Request erstellen", default=False)
     submit = SubmitField("Hochladen")
 
 
