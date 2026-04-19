@@ -1,6 +1,6 @@
 from flask_login import current_user
 from flask_wtf import FlaskForm
-from flask_wtf.file import FileAllowed, FileField, FileRequired
+from flask_wtf.file import FileField, MultipleFileField
 from wtforms import (
     BooleanField,
     HiddenField,
@@ -100,12 +100,19 @@ class ProfileForm(FlaskForm):
     )
     description = TextAreaField("Beschreibung", validators=[Optional()])
     comment = TextAreaField("Kommentar", validators=[Optional()])
-    upload = FileField(
-        "Profildatei (.tar, .export)",
-        validators=[FileRequired(), FileAllowed(["tar", "export"], "Nur .tar- oder .export-Dateien erlaubt")],
-    )
+    upload = MultipleFileField("Profildateien (.tar, .export)")
     create_mr = BooleanField("Nach Upload direkt Merge Request erstellen", default=False)
     submit = SubmitField("Hochladen")
+
+    def validate_upload(self, field):
+        files = [file for file in (field.data or []) if getattr(file, "filename", "")]
+        if not files:
+            raise ValidationError("Bitte mindestens eine .tar- oder .export-Datei auswählen")
+
+        for file in files:
+            suffix = (file.filename.rsplit(".", 1)[-1] or "").lower() if "." in file.filename else ""
+            if suffix not in {"tar", "export"}:
+                raise ValidationError("Nur .tar- oder .export-Dateien erlaubt")
 
 
 class ProfileEditForm(FlaskForm):
@@ -117,14 +124,15 @@ class ProfileEditForm(FlaskForm):
     )
     description = TextAreaField("Beschreibung", validators=[Optional()])
     comment = TextAreaField("Kommentar", validators=[Optional()])
-    upload = FileField(
-        "Neue Version (.tar, .export)",
-        validators=[
-            Optional(),
-            FileAllowed(["tar", "export"], "Nur .tar- oder .export-Dateien erlaubt"),
-        ],
-    )
+    upload = MultipleFileField("Neue Version(en) (.tar, .export)", validators=[Optional()])
     submit = SubmitField("Aktualisieren")
+
+    def validate_upload(self, field):
+        files = [file for file in (field.data or []) if getattr(file, "filename", "")]
+        for file in files:
+            suffix = (file.filename.rsplit(".", 1)[-1] or "").lower() if "." in file.filename else ""
+            if suffix not in {"tar", "export"}:
+                raise ValidationError("Nur .tar- oder .export-Dateien erlaubt")
 
 
 class GitLabConfigForm(FlaskForm):

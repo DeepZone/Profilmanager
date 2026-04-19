@@ -231,28 +231,30 @@ def all_profiles():
 def upload():
     form = ProfileForm()
     if form.validate_on_submit():
+        uploaded_files = [file for file in (form.upload.data or []) if getattr(file, "filename", "")]
         profile = Profile(
             name=form.name.data,
             provider=form.provider.data.strip(),
             description=form.description.data,
             comment=form.comment.data,
             owner=current_user,
-            current_version=1,
+            current_version=len(uploaded_files),
         )
         _apply_country_metadata(profile, form.country_code.data)
         db.session.add(profile)
         db.session.flush()
 
         storage = StorageService(current_app.config["UPLOAD_FOLDER"])
-        meta = storage.save_profile_upload(profile.id, 1, form.upload.data)
-
-        profile_file = ProfileFile(profile=profile, version=1, **meta)
-        db.session.add(profile_file)
+        profile_file = None
+        for version, uploaded_file in enumerate(uploaded_files, start=1):
+            meta = storage.save_profile_upload(profile.id, version, uploaded_file)
+            profile_file = ProfileFile(profile=profile, version=version, **meta)
+            db.session.add(profile_file)
         db.session.add(
             AuditLog(
                 user_id=current_user.id,
                 action="profile_upload",
-                details=f"Profil {profile.name} v1 hochgeladen",
+                details=f"Profil {profile.name} mit {len(uploaded_files)} Datei(en) hochgeladen",
             )
         )
         db.session.commit()
@@ -363,17 +365,19 @@ def edit(profile_id):
         form.country_code.data = profile.country_code
 
     if form.validate_on_submit():
+        uploaded_files = [file for file in (form.upload.data or []) if getattr(file, "filename", "")]
         profile.provider = form.provider.data.strip()
         profile.description = form.description.data
         profile.comment = form.comment.data
 
         _apply_country_metadata(profile, form.country_code.data)
 
-        if form.upload.data:
-            profile.current_version += 1
+        if uploaded_files:
             storage = StorageService(current_app.config["UPLOAD_FOLDER"])
-            meta = storage.save_profile_upload(profile.id, profile.current_version, form.upload.data)
-            db.session.add(ProfileFile(profile=profile, version=profile.current_version, **meta))
+            for uploaded_file in uploaded_files:
+                profile.current_version += 1
+                meta = storage.save_profile_upload(profile.id, profile.current_version, uploaded_file)
+                db.session.add(ProfileFile(profile=profile, version=profile.current_version, **meta))
 
         db.session.add(
             AuditLog(
