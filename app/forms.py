@@ -3,13 +3,14 @@ from flask_wtf.file import FileAllowed, FileField, FileRequired
 from wtforms import (
     BooleanField,
     HiddenField,
+    IntegerField,
     PasswordField,
     SelectField,
     StringField,
     SubmitField,
     TextAreaField,
 )
-from wtforms.validators import DataRequired, Email, Length, Optional
+from wtforms.validators import DataRequired, Email, Length, NumberRange, Optional
 
 
 class LoginForm(FlaskForm):
@@ -55,6 +56,16 @@ class GitLabConfigForm(FlaskForm):
         "Standard Projekt-ID", validators=[Optional(), Length(max=50)]
     )
     submit = SubmitField("Konfiguration speichern")
+
+
+class AppVersionMajorForm(FlaskForm):
+    major = IntegerField("Hauptversion (MAJOR)", validators=[DataRequired(), NumberRange(min=0)])
+    submit_major = SubmitField("Hauptversion setzen")
+
+
+class AppVersionMinorForm(FlaskForm):
+    minor = IntegerField("Subversion (MINOR)", validators=[DataRequired(), NumberRange(min=0)])
+    submit_minor = SubmitField("Subversion setzen")
 
 
 class PushToGitLabForm(FlaskForm):
