@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card mb-3">
+  <div class="card-header">
+    <h3 class="card-title">Main-Branch Verwaltung</h3>
+  </div>
+  <div class="card-body">
+    <p class="mb-0">Hier siehst du alle Merge Requests mit Ziel <code>main</code>. Aktionen sind nur möglich, wenn dein GitLab-Token Push-Rechte auf <code>main</code> hat.</p>
+  </div>
+</div>
+
+{% if error %}
+  <div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+{% for project in projects %}
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h3 class="card-title mb-0">Projekt {{ project.project_id }} – Branch {{ project.branch.name }}</h3>
+    {% if project.can_admin_main %}
+      <span class="badge badge-success">Main administrierbar</span>
+    {% else %}
+      <span class="badge badge-secondary">Nur Leserechte auf Main</span>
+    {% endif %}
+  </div>
+  <div class="card-body table-responsive p-0">
+    <table class="table table-striped mb-0">
+      <thead>
+        <tr>
+          <th>MR</th>
+          <th>Titel</th>
+          <th>Status</th>
+          <th>Quelle</th>
+          <th>Erstellt</th>
+          <th>Aktionen</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for mr in project.merge_requests %}
+        <tr>
+          <td>!{{ mr.iid }}</td>
+          <td><a href="{{ mr.web_url }}" target="_blank" rel="noopener noreferrer">{{ mr.title }}</a></td>
+          <td>{{ mr.state }}</td>
+          <td>{{ mr.source_branch }} → {{ mr.target_branch }}</td>
+          <td>{{ mr.created_at }}</td>
+          <td>
+            {% if project.can_admin_main %}
+              {% if mr.state == 'opened' %}
+                <form method="post" class="d-inline">
+                  {{ form.csrf_token }}
+                  {{ form.action(value='merge') }}
+                  {{ form.project_id(value=project.project_id) }}
+                  {{ form.mr_iid(value=mr.iid) }}
+                  <button type="submit" name="{{ form.submit.name }}" class="btn btn-sm btn-success">Merge</button>
+                </form>
+                <form method="post" class="d-inline">
+                  {{ form.csrf_token }}
+                  {{ form.action(value='close') }}
+                  {{ form.project_id(value=project.project_id) }}
+                  {{ form.mr_iid(value=mr.iid) }}
+                  <button type="submit" name="{{ form.submit.name }}" class="btn btn-sm btn-warning">Schließen</button>
+                </form>
+              {% elif mr.state == 'closed' %}
+                <form method="post" class="d-inline">
+                  {{ form.csrf_token }}
+                  {{ form.action(value='reopen') }}
+                  {{ form.project_id(value=project.project_id) }}
+                  {{ form.mr_iid(value=mr.iid) }}
+                  <button type="submit" name="{{ form.submit.name }}" class="btn btn-sm btn-info">Wiederöffnen</button>
+                </form>
+              {% endif %}
+            {% else %}
+              <span class="text-muted">Keine Schreibrechte</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6" class="text-muted">Keine Merge Requests auf main gefunden.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="alert alert-info">Keine Projekte für die Main-Branch-Verwaltung gefunden.</div>
+{% endfor %}
+{% endblock %}

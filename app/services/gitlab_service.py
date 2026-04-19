@@ -78,10 +78,15 @@ class GitLabService:
             },
         )
 
-    def list_merge_requests(self, project_id: int, state="all"):
-        return self._request(
-            "GET", f"/projects/{project_id}/merge_requests", params={"state": state}
-        )
+    def list_merge_requests(self, project_id: int, state="all", target_branch=None):
+        params = {"state": state}
+        if target_branch:
+            params["target_branch"] = target_branch
+        return self._request("GET", f"/projects/{project_id}/merge_requests", params=params)
+
+    def get_branch(self, project_id: int, branch_name: str):
+        encoded = quote(branch_name, safe="")
+        return self._request("GET", f"/projects/{project_id}/repository/branches/{encoded}")
 
     def get_merge_request(self, project_id: int, mr_iid: int):
         return self._request("GET", f"/projects/{project_id}/merge_requests/{mr_iid}")
@@ -98,3 +103,10 @@ class GitLabService:
 
     def delete_merge_request(self, project_id: int, mr_iid: int):
         return self._request("DELETE", f"/projects/{project_id}/merge_requests/{mr_iid}")
+
+    def change_merge_request_state(self, project_id: int, mr_iid: int, state_event: str):
+        return self._request(
+            "PUT",
+            f"/projects/{project_id}/merge_requests/{mr_iid}",
+            data={"state_event": state_event},
+        )

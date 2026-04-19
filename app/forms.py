@@ -148,3 +148,10 @@ class MergeActionForm(FlaskForm):
 
 class DeleteMergeRequestForm(FlaskForm):
     submit = SubmitField("Merge Request löschen")
+
+
+class MainBranchActionForm(FlaskForm):
+    action = HiddenField(validators=[DataRequired()])
+    project_id = HiddenField(validators=[DataRequired()])
+    mr_iid = HiddenField(validators=[DataRequired()])
+    submit = SubmitField("Ausführen")

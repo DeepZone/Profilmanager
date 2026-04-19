@@ -11,6 +11,10 @@
         <td>{{ mr.title }}</td><td>{{ mr.status }}</td><td>{{ mr.branch_name }} → {{ mr.target_branch }}</td><td>{{ mr.created_at }}</td>
         <td><a href="{{ url_for('gitlab.detail', mr_id=mr.id) }}" class="btn btn-sm btn-info">Details</a></td>
       </tr>
+      {% else %}
+      <tr>
+        <td colspan="5" class="text-muted">Keine offenen Merge Requests vorhanden.</td>
+      </tr>
       {% endfor %}
       </tbody>
     </table>
