@@ -49,6 +49,35 @@
       </div>
     </div>
   </div>
+  <div class="card-body border-bottom">
+    <strong>Erkannte Profile auf main:</strong>
+    <div class="small mt-2" style="max-height: 220px; overflow: auto;">
+      {% if project.profiles %}
+        <table class="table table-sm table-bordered mb-0">
+          <thead>
+            <tr>
+              <th>Profilpfad</th>
+              <th>Landesvorwahl</th>
+              <th>Provider</th>
+              <th>Dateien</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for profile in project.profiles %}
+              <tr>
+                <td><code>{{ profile.path }}</code></td>
+                <td>{{ profile.dial_code }}</td>
+                <td>{{ profile.provider }}</td>
+                <td>{{ profile.file_count }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <span class="text-muted">Keine Profile unterhalb von <code>providers-*</code> gefunden.</span>
+      {% endif %}
+    </div>
+  </div>
   <div class="card-body table-responsive p-0">
     <table class="table table-striped mb-0">
       <thead>
