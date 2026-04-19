@@ -54,6 +54,25 @@ class VersionServiceTestCase(unittest.TestCase):
         version = VersionService.initialize_version_if_missing()
         self.assertEqual(version.as_string(), "1.0.0")
 
+
+    def test_bump_build_for_new_release_id(self):
+        VersionService.initialize_version_if_missing()
+
+        new_version = VersionService.bump_build_for_release("release-a")
+        self.assertEqual(new_version.as_string(), "1.0.1")
+
+        same_version = VersionService.bump_build_for_release("release-a")
+        self.assertEqual(same_version.as_string(), "1.0.1")
+
+        next_version = VersionService.bump_build_for_release("release-b")
+        self.assertEqual(next_version.as_string(), "1.0.2")
+
+    def test_bump_build_without_release_id_keeps_version(self):
+        VersionService.initialize_version_if_missing()
+
+        version = VersionService.bump_build_for_release(None)
+        self.assertEqual(version.as_string(), "1.0.0")
+
     def test_increment_build(self):
         VersionService.initialize_version_if_missing()
         new_version = VersionService.increment_build(user_id=self.admin.id, reason="test")
