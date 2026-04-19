@@ -5,6 +5,16 @@
   <div class="card">
     <div class="card-header"><h3 class="card-title">Profil: {{ profile.name }}</h3></div>
     <div class="card-body">
+      <p><b>Provider:</b> {{ profile.provider or '-' }}</p>
+      <p><b>Landesvorwahl:</b>
+        {% if country %}
+          {{ country.flag_emoji }} {{ country.country_name }} ({{ country.dial_code }})
+        {% elif profile.dial_code %}
+          {{ profile.dial_code }}
+        {% else %}
+          -
+        {% endif %}
+      </p>
       <p><b>Beschreibung:</b> {{ profile.description }}</p>
       <p><b>Kommentar:</b> {{ profile.comment }}</p>
       <p><b>Aktuelle Version:</b> {{ profile.current_version }}</p>

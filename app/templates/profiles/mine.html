@@ -9,10 +9,17 @@
   </div>
   <div class="card-body table-responsive p-0">
     <table class="table table-hover">
-      <thead><tr><th>Name</th><th>Version</th><th>Aktualisiert</th><th></th></tr></thead>
+      <thead><tr><th>Name</th><th>Provider</th><th>Landesvorwahl</th><th>Version</th><th>Aktualisiert</th><th></th></tr></thead>
       <tbody>
       {% for p in pagination.items %}
-        <tr><td>{{ p.name }}</td><td>{{ p.current_version }}</td><td>{{ p.updated_at }}</td><td><a class="btn btn-sm btn-info" href="{{ url_for('profiles.detail', profile_id=p.id) }}">Details</a></td></tr>
+        <tr>
+          <td>{{ p.name }}</td>
+          <td>{{ p.provider or '-' }}</td>
+          <td>{{ p.dial_code or '-' }}</td>
+          <td>{{ p.current_version }}</td>
+          <td>{{ p.updated_at }}</td>
+          <td><a class="btn btn-sm btn-info" href="{{ url_for('profiles.detail', profile_id=p.id) }}">Details</a></td>
+        </tr>
       {% endfor %}
       </tbody>
     </table>
