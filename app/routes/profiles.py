@@ -36,6 +36,13 @@ def _get_gitlab_service_or_raise():
     return GitLabService(url.value, token.value)
 
 
+def _get_profile_dependency_counts(profile_id: int) -> dict[str, int]:
+    return {
+        "dateien": ProfileFile.query.filter_by(profile_id=profile_id).count(),
+        "merge_requests": GitLabMergeRequest.query.filter_by(profile_id=profile_id).count(),
+    }
+
+
 def _apply_country_metadata(profile: Profile, selected_iso_code: str) -> None:
     country = get_country_by_iso_code(selected_iso_code)
     if not country:
@@ -140,7 +147,14 @@ def detail(profile_id):
         push_form.project_id.data = project_setting.value
 
     country = get_country_by_iso_code(profile.country_code)
-    return render_template("profiles/detail.html", profile=profile, push_form=push_form, country=country)
+    dependency_counts = _get_profile_dependency_counts(profile.id)
+    return render_template(
+        "profiles/detail.html",
+        profile=profile,
+        push_form=push_form,
+        country=country,
+        dependency_counts=dependency_counts,
+    )
 
 
 @profiles_bp.route("/<int:profile_id>/download/<int:file_id>")
@@ -199,12 +213,43 @@ def delete(profile_id):
     if not _can_access_profile(profile):
         abort(403)
 
+    delete_dependencies = request.form.get("delete_dependencies") == "1"
+    keep_dependencies = request.form.get("keep_dependencies") == "1"
+    dependency_counts = _get_profile_dependency_counts(profile.id)
+    has_dependencies = any(count > 0 for count in dependency_counts.values())
+
+    if has_dependencies and not delete_dependencies and not keep_dependencies:
+        dependencies_text = ", ".join(
+            f"{name}: {count}" for name, count in dependency_counts.items() if count > 0
+        )
+        flash(
+            f"Profil hat noch abhängige Daten ({dependencies_text}). "
+            "Bitte wähle beim Löschen aus, ob diese ebenfalls gelöscht werden sollen.",
+            "warning",
+        )
+        return redirect(url_for("profiles.detail", profile_id=profile.id))
+
+    if delete_dependencies:
+        GitLabMergeRequest.query.filter_by(profile_id=profile.id).delete(synchronize_session=False)
+        ProfileFile.query.filter_by(profile_id=profile.id).delete(synchronize_session=False)
+    elif keep_dependencies:
+        GitLabMergeRequest.query.filter_by(profile_id=profile.id).update(
+            {GitLabMergeRequest.profile_id: None}, synchronize_session=False
+        )
+        ProfileFile.query.filter_by(profile_id=profile.id).update(
+            {ProfileFile.profile_id: None}, synchronize_session=False
+        )
+
     db.session.delete(profile)
     db.session.add(
         AuditLog(
             user_id=current_user.id,
             action="profile_delete",
-            details=f"Profil {profile.id} gelöscht",
+            details=(
+                f"Profil {profile.id} gelöscht "
+                f"(abhängige Daten gelöscht: {delete_dependencies}, "
+                f"abhängige Daten behalten: {keep_dependencies})"
+            ),
         )
     )
     try:
@@ -212,7 +257,7 @@ def delete(profile_id):
     except IntegrityError:
         db.session.rollback()
         flash(
-            "Profil kann nicht gelöscht werden, da noch abhängige Daten vorhanden sind.",
+            "Profil konnte nicht gelöscht werden. Bitte prüfe die abhängigen Daten und versuche es erneut.",
             "danger",
         )
         return redirect(url_for("profiles.detail", profile_id=profile.id))
