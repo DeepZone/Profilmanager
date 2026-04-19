@@ -13,11 +13,24 @@
         <pre class="diff-box">{{ change.diff }}</pre>
       </div>
     {% endfor %}
-    {% if current_user.is_admin and (details and details.state == 'opened') %}
-    <form method="post">
-      {{ form.hidden_tag() }}
-      <div class="form-check mb-2">{{ form.squash(class='form-check-input') }} {{ form.squash.label(class='form-check-label') }}</div>
-      {{ form.submit(class='btn btn-success') }}
+    {% if details and details.state == 'opened' %}
+    <form method="post" class="mb-3">
+      {{ merge_form.hidden_tag() }}
+      <div class="form-check mb-2">
+        {{ merge_form.squash(class='form-check-input') }}
+        {{ merge_form.squash.label(class='form-check-label') }}
+      </div>
+      {{ merge_form.submit(class='btn btn-success', disabled=not can_merge) }}
+      {% if not can_merge %}
+      <div class="text-muted mt-2">Merge nur mit entsprechender GitLab-Berechtigung möglich.</div>
+      {% endif %}
+    </form>
+    {% endif %}
+
+    {% if can_delete %}
+    <form method="post" onsubmit="return confirm('Merge Request wirklich löschen?');">
+      {{ delete_form.hidden_tag() }}
+      {{ delete_form.submit(class='btn btn-danger') }}
     </form>
     {% endif %}
   </div>

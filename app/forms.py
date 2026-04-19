@@ -144,3 +144,7 @@ class PushToGitLabForm(FlaskForm):
 class MergeActionForm(FlaskForm):
     squash = BooleanField("Squash beim Merge", default=False)
     submit = SubmitField("Merge ausführen")
+
+
+class DeleteMergeRequestForm(FlaskForm):
+    submit = SubmitField("Merge Request löschen")
