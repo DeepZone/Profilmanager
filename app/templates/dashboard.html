@@ -7,4 +7,85 @@
   <div class="col-md-4"><div class="small-box bg-warning"><div class="inner"><h3>{{ user_count }}</h3><p>Benutzer</p></div></div></div>
   {% endif %}
 </div>
+
+<div class="row">
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Profilanteile nach Land</h3>
+      </div>
+      <div class="card-body">
+        {% if country_distribution %}
+          <canvas id="country-share-chart" style="min-height: 360px;"></canvas>
+        {% else %}
+          <p class="text-muted mb-0">Noch keine Profile mit Länderzuordnung vorhanden.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Übersicht</h3>
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+          <thead>
+            <tr>
+              <th>Land</th>
+              <th class="text-right">Anzahl</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in country_distribution %}
+              <tr>
+                <td>{{ item.label }}</td>
+                <td class="text-right">{{ item.count }}</td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="2" class="text-muted">Keine Daten vorhanden.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+  {{ super() }}
+  {% if country_distribution %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <script>
+      const countryData = {{ country_distribution | tojson }};
+      const ctx = document.getElementById('country-share-chart');
+      const palette = [
+        '#17a2b8', '#28a745', '#ffc107', '#dc3545', '#6f42c1',
+        '#fd7e14', '#20c997', '#007bff', '#6610f2', '#e83e8c'
+      ];
+
+      new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: countryData.map((item) => item.label),
+          datasets: [{
+            data: countryData.map((item) => item.count),
+            backgroundColor: countryData.map((_, idx) => palette[idx % palette.length]),
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom'
+            }
+          }
+        }
+      });
+    </script>
+  {% endif %}
 {% endblock %}
