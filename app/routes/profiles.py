@@ -49,6 +49,24 @@ def _get_profile_merge_request_status_counts(profile_id: int) -> dict[str, int]:
     return {"opened": opened, "merged": merged}
 
 
+def _get_profile_gitlab_push_context(profile_id: int) -> dict:
+    open_mr = (
+        GitLabMergeRequest.query.filter_by(profile_id=profile_id, status="opened")
+        .order_by(GitLabMergeRequest.created_at.desc())
+        .first()
+    )
+    latest_merged_mr = (
+        GitLabMergeRequest.query.filter_by(profile_id=profile_id, status="merged")
+        .order_by(GitLabMergeRequest.updated_at.desc())
+        .first()
+    )
+    return {
+        "show_push_form": open_mr is None,
+        "open_mr": open_mr,
+        "latest_merged_mr": latest_merged_mr,
+    }
+
+
 def _get_profile_delete_block_reason(profile: Profile) -> str | None:
     mr_status_counts = _get_profile_merge_request_status_counts(profile.id)
     if mr_status_counts["opened"] > 1:
@@ -311,12 +329,14 @@ def detail(profile_id):
 
     country = get_country_by_iso_code(profile.country_code)
     dependency_counts = _get_profile_dependency_counts(profile.id)
+    gitlab_push_context = _get_profile_gitlab_push_context(profile.id)
     return render_template(
         "profiles/detail.html",
         profile=profile,
         push_form=push_form,
         country=country,
         dependency_counts=dependency_counts,
+        gitlab_push_context=gitlab_push_context,
     )
 
 

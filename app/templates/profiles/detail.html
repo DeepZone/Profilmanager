@@ -45,18 +45,44 @@
 <div class="col-md-5">
   <div class="card card-info">
     <div class="card-header"><h3 class="card-title">Zu GitLab pushen</h3></div>
-    <form method="post" action="{{ url_for('profiles.push_to_gitlab') }}">
+    {% if gitlab_push_context.show_push_form %}
+      <form method="post" action="{{ url_for('profiles.push_to_gitlab') }}">
+        <div class="card-body">
+          {% if gitlab_push_context.latest_merged_mr %}
+            <div class="alert alert-success">
+              Profil wurde bereits gemerged.
+              {% if gitlab_push_context.latest_merged_mr.web_url %}
+                <a href="{{ gitlab_push_context.latest_merged_mr.web_url }}" target="_blank" rel="noopener">
+                  Zum Profil-/Merge-Link in GitLab
+                </a>
+              {% endif %}
+            </div>
+          {% endif %}
+          {{ push_form.hidden_tag() }}
+          {{ push_form.profile_file_id() }}
+          <div class="form-group">{{ push_form.project_id.label }} {{ push_form.project_id(class='form-control') }}</div>
+          <div class="form-group">{{ push_form.branch_name.label }} {{ push_form.branch_name(class='form-control') }}</div>
+          <div class="form-group">{{ push_form.target_branch.label }} {{ push_form.target_branch(class='form-control') }}</div>
+          <div class="form-group">{{ push_form.commit_message.label }} {{ push_form.commit_message(class='form-control') }}</div>
+          <div class="form-group">{{ push_form.mr_title.label }} {{ push_form.mr_title(class='form-control') }}</div>
+        </div>
+        <div class="card-footer">{{ push_form.submit(class='btn btn-info') }}</div>
+      </form>
+    {% else %}
       <div class="card-body">
-        {{ push_form.hidden_tag() }}
-        {{ push_form.profile_file_id() }}
-        <div class="form-group">{{ push_form.project_id.label }} {{ push_form.project_id(class='form-control') }}</div>
-        <div class="form-group">{{ push_form.branch_name.label }} {{ push_form.branch_name(class='form-control') }}</div>
-        <div class="form-group">{{ push_form.target_branch.label }} {{ push_form.target_branch(class='form-control') }}</div>
-        <div class="form-group">{{ push_form.commit_message.label }} {{ push_form.commit_message(class='form-control') }}</div>
-        <div class="form-group">{{ push_form.mr_title.label }} {{ push_form.mr_title(class='form-control') }}</div>
+        <div class="alert alert-warning mb-0">
+          Für dieses Profil existiert bereits ein offener Merge Request:
+          <br>
+          <strong>#{{ gitlab_push_context.open_mr.gitlab_mr_iid }} — {{ gitlab_push_context.open_mr.title }}</strong>
+          {% if gitlab_push_context.open_mr.web_url %}
+            <br>
+            <a href="{{ gitlab_push_context.open_mr.web_url }}" target="_blank" rel="noopener">
+              Offenen Merge Request in GitLab anzeigen
+            </a>
+          {% endif %}
+        </div>
       </div>
-      <div class="card-footer">{{ push_form.submit(class='btn btn-info') }}</div>
-    </form>
+    {% endif %}
   </div>
 </div>
 </div>
