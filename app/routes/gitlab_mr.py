@@ -12,6 +12,15 @@ from app.services.version_service import VersionService
 gitlab_bp = Blueprint("gitlab", __name__, url_prefix="/merge-requests")
 
 
+def _merge_was_successful(merge_response: dict) -> bool:
+    if merge_response.get("state") == "merged":
+        return True
+
+    # Einige GitLab-Instanzen liefern nach dem Merge nicht sofort state=merged,
+    # setzen aber bereits merged_at oder merge_commit_sha.
+    return bool(merge_response.get("merged_at") or merge_response.get("merge_commit_sha"))
+
+
 def _service():
     url = Setting.query.filter_by(key="gitlab_url").first()
     token = Setting.query.filter_by(key="gitlab_token").first()
@@ -56,8 +65,8 @@ def detail(mr_id):
             merge = service.merge_request(
                 mr.project_id, mr.gitlab_mr_iid, squash=merge_form.squash.data
             )
-            merged_successfully = merge.get("state") == "merged"
-            mr.status = merge.get("state", "merged")
+            merged_successfully = _merge_was_successful(merge)
+            mr.status = "merged" if merged_successfully else merge.get("state", "opened")
 
             if merged_successfully:
                 VersionService.increment_build(
