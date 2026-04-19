@@ -1,11 +1,11 @@
 from sqlalchemy.exc import SQLAlchemyError
 
-from flask import Blueprint, abort, current_app, flash, redirect, render_template, url_for
+from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from app.extensions import db
-from app.forms import MergeActionForm
-from app.models import GitLabMergeRequest, Profile, Setting
+from app.forms import DeleteMergeRequestForm, MergeActionForm
+from app.models import GitLabMergeRequest, Setting
 from app.services.gitlab_service import GitLabService, GitLabServiceError
 from app.services.version_service import VersionService
 
@@ -23,15 +23,7 @@ def _service():
 @gitlab_bp.route("/")
 @login_required
 def index():
-    if current_user.is_admin:
-        mrs = GitLabMergeRequest.query.order_by(GitLabMergeRequest.created_at.desc()).all()
-    else:
-        mrs = (
-            GitLabMergeRequest.query.join(Profile)
-            .filter(Profile.user_id == current_user.id)
-            .order_by(GitLabMergeRequest.created_at.desc())
-            .all()
-        )
+    mrs = GitLabMergeRequest.query.order_by(GitLabMergeRequest.created_at.desc()).all()
     return render_template("gitlab/index.html", mrs=mrs)
 
 
@@ -39,10 +31,9 @@ def index():
 @login_required
 def detail(mr_id):
     mr = GitLabMergeRequest.query.get_or_404(mr_id)
-    if not current_user.is_admin and mr.profile.user_id != current_user.id:
-        abort(403)
 
-    form = MergeActionForm()
+    merge_form = MergeActionForm(prefix="merge")
+    delete_form = DeleteMergeRequestForm(prefix="delete")
     details = None
     changes = []
     error = None
@@ -55,12 +46,16 @@ def detail(mr_id):
     except GitLabServiceError as exc:
         error = str(exc)
 
-    if form.validate_on_submit():
-        if not current_user.is_admin:
+    can_delete = current_user.is_admin or mr.created_by == current_user.id
+
+    if request.method == "POST" and merge_form.submit.data and merge_form.validate():
+        if details and not details.get("user", {}).get("can_merge", False):
             abort(403)
         try:
             service = _service()
-            merge = service.merge_request(mr.project_id, mr.gitlab_mr_iid, squash=form.squash.data)
+            merge = service.merge_request(
+                mr.project_id, mr.gitlab_mr_iid, squash=merge_form.squash.data
+            )
             merged_successfully = merge.get("state") == "merged"
             mr.status = merge.get("state", "merged")
 
@@ -87,6 +82,32 @@ def detail(mr_id):
             )
         return redirect(url_for("gitlab.detail", mr_id=mr.id))
 
+    if request.method == "POST" and delete_form.submit.data and delete_form.validate():
+        if not can_delete:
+            abort(403)
+        try:
+            service = _service()
+            service.delete_merge_request(mr.project_id, mr.gitlab_mr_iid)
+            db.session.delete(mr)
+            db.session.commit()
+            flash("Merge Request wurde gelöscht.", "success")
+            return redirect(url_for("gitlab.index"))
+        except GitLabServiceError as exc:
+            db.session.rollback()
+            flash(f"Löschen fehlgeschlagen: {exc}", "danger")
+        except SQLAlchemyError:
+            db.session.rollback()
+            current_app.logger.exception("Lokales Löschen fehlgeschlagen (mr_id=%s)", mr.id)
+            flash("Merge Request konnte lokal nicht gelöscht werden.", "danger")
+
     return render_template(
-        "gitlab/detail.html", mr=mr, details=details, changes=changes, error=error, form=form
+        "gitlab/detail.html",
+        mr=mr,
+        details=details,
+        changes=changes,
+        error=error,
+        merge_form=merge_form,
+        delete_form=delete_form,
+        can_delete=can_delete,
+        can_merge=details.get("user", {}).get("can_merge", True) if details else False,
     )

@@ -95,3 +95,6 @@ class GitLabService:
             f"/projects/{project_id}/merge_requests/{mr_iid}/merge",
             data={"squash": squash},
         )
+
+    def delete_merge_request(self, project_id: int, mr_iid: int):
+        return self._request("DELETE", f"/projects/{project_id}/merge_requests/{mr_iid}")
