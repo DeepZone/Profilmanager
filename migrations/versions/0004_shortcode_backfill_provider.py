@@ -1,6 +1,6 @@
 """enforce shortcode and add profile provider/country fields
 
-Revision ID: 0004_shortcode_backfill_and_profile_provider_fields
+Revision ID: 0004_shortcode_backfill_provider
 Revises: 0003_user_shortcode
 Create Date: 2026-04-19
 """
@@ -11,7 +11,7 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision = "0004_shortcode_backfill_and_profile_provider_fields"
+revision = "0004_shortcode_backfill_provider"
 down_revision = "0003_user_shortcode"
 branch_labels = None
 depends_on = None
