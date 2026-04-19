@@ -1,10 +1,27 @@
 import os
+import subprocess
 
 from flask import Flask
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.config import Config
 from app.extensions import csrf, db, login_manager, migrate
 from app.services.version_service import VersionService, VersionServiceError
+
+
+def _resolve_release_id() -> str | None:
+    release_id = os.getenv("APP_RELEASE_ID")
+    if release_id:
+        return release_id.strip()
+
+    try:
+        return (
+            subprocess.check_output(["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL)
+            .decode("utf-8")
+            .strip()
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return None
 
 
 def create_app():
@@ -50,6 +67,10 @@ def create_app():
     app.register_blueprint(gitlab_bp)
 
     with app.app_context():
-        VersionService.initialize_version_if_missing()
+        try:
+            VersionService.initialize_version_if_missing()
+            VersionService.bump_build_for_release(_resolve_release_id())
+        except SQLAlchemyError:
+            app.logger.debug("Versionsinitialisierung übersprungen, Tabellen sind noch nicht verfügbar.")
 
     return app

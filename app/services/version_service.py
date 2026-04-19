@@ -24,6 +24,7 @@ class VersionService:
     VERSION_MAJOR_KEY = "app_version_major"
     VERSION_MINOR_KEY = "app_version_minor"
     VERSION_BUILD_KEY = "app_version_build"
+    RELEASE_SHA_KEY = "app_release_sha"
 
     @classmethod
     def _validate_non_negative_int(cls, value, field_name: str) -> int:
@@ -114,6 +115,32 @@ class VersionService:
             + (f" reason={reason}" if reason else "")
         )
         db.session.add(AuditLog(user_id=user_id, action="version_changed", details=details))
+
+
+    @classmethod
+    def bump_build_for_release(cls, release_id: str | None) -> AppVersion:
+        version = cls.get_version()
+        if not release_id:
+            return version
+
+        release_setting = cls._get_setting(cls.RELEASE_SHA_KEY)
+        if release_setting and release_setting.value == release_id:
+            return version
+
+        new_version = AppVersion(
+            major=version.major,
+            minor=version.minor,
+            build=version.build + 1,
+        )
+        cls._upsert_setting(cls.VERSION_BUILD_KEY, new_version.build)
+
+        if release_setting:
+            release_setting.value = release_id
+        else:
+            db.session.add(Setting(key=cls.RELEASE_SHA_KEY, value=release_id))
+
+        db.session.commit()
+        return new_version
 
     @classmethod
     def increment_build(cls, user_id: int | None = None, reason: str | None = None) -> AppVersion:

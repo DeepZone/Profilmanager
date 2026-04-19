@@ -7,9 +7,34 @@
   padding: 0.75rem;
 }
 
+.nav-sidebar .nav-header {
+  margin-top: 0.9rem;
+  margin-bottom: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.92);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.main-sidebar .sidebar {
+  padding-bottom: 3.25rem;
+}
+
 .sidebar-version {
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(13, 17, 23, 0.95);
   letter-spacing: 0.01em;
+  padding-top: 0.65rem;
+  padding-bottom: 0.65rem;
 }
 
 .select2-container--bootstrap4 .select2-selection--single {
