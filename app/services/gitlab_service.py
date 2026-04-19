@@ -84,6 +84,10 @@ class GitLabService:
             params["target_branch"] = target_branch
         return self._request("GET", f"/projects/{project_id}/merge_requests", params=params)
 
+    def list_repository_tree(self, project_id: int, ref: str = "main", recursive: bool = True):
+        params = {"ref": ref, "recursive": recursive, "per_page": 100}
+        return self._request("GET", f"/projects/{project_id}/repository/tree", params=params)
+
     def get_branch(self, project_id: int, branch_name: str):
         encoded = quote(branch_name, safe="")
         return self._request("GET", f"/projects/{project_id}/repository/branches/{encoded}")

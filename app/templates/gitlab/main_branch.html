@@ -5,7 +5,7 @@
     <h3 class="card-title">Main-Branch Verwaltung</h3>
   </div>
   <div class="card-body">
-    <p class="mb-0">Hier siehst du alle Merge Requests mit Ziel <code>main</code>. Aktionen sind nur möglich, wenn dein GitLab-Token Push-Rechte auf <code>main</code> hat.</p>
+    <p class="mb-0">Hier siehst du den vollständigen Stand von <code>main</code> sowie nur offene Merge Requests mit Ziel <code>main</code>. Aktionen sind nur möglich, wenn dein GitLab-Token Push-Rechte auf <code>main</code> hat.</p>
   </div>
 </div>
 
@@ -22,6 +22,32 @@
     {% else %}
       <span class="badge badge-secondary">Nur Leserechte auf Main</span>
     {% endif %}
+  </div>
+  <div class="card-body border-bottom">
+    <div class="row">
+      <div class="col-md-6 mb-2 mb-md-0">
+        <strong>Letzter Commit:</strong>
+        {% if project.branch.commit %}
+          <code>{{ project.branch.commit.short_id }}</code> – {{ project.branch.commit.title }}
+        {% else %}
+          <span class="text-muted">Nicht verfügbar</span>
+        {% endif %}
+      </div>
+      <div class="col-md-6">
+        <strong>Repository-Struktur auf main:</strong>
+        <div class="small mt-1" style="max-height: 150px; overflow: auto;">
+          {% if project.tree_entries %}
+            <ul class="mb-0 pl-3">
+              {% for entry in project.tree_entries %}
+                <li><code>{{ entry.path }}</code> <span class="text-muted">({{ entry.type }})</span></li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <span class="text-muted">Keine Inhalte gefunden.</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
   </div>
   <div class="card-body table-responsive p-0">
     <table class="table table-striped mb-0">
@@ -75,7 +101,7 @@
           </td>
         </tr>
       {% else %}
-        <tr><td colspan="6" class="text-muted">Keine Merge Requests auf main gefunden.</td></tr>
+        <tr><td colspan="6" class="text-muted">Keine offenen Merge Requests auf main gefunden.</td></tr>
       {% endfor %}
       </tbody>
     </table>
