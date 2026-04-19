@@ -1,6 +1,13 @@
 import unittest
 
-from app.routes.gitlab_mr import _collect_files_for_delete, _collect_main_profiles, _merge_was_successful
+from app import create_app
+from app.routes.gitlab_mr import (
+    _collect_files_for_delete,
+    _collect_main_profiles,
+    _main_branch_request_flags,
+    _merge_was_successful,
+)
+from app.forms import MainBranchActionForm, MainBranchDeletePathForm
 
 
 class MergeStateTestCase(unittest.TestCase):
@@ -69,6 +76,30 @@ class MainBranchDeleteCollectionTestCase(unittest.TestCase):
     def test_returns_empty_for_missing_path(self):
         result = _collect_files_for_delete(self.tree_entries, "providers-999/provider-x", "tree")
         self.assertEqual([], result)
+
+
+class MainBranchFormDetectionTestCase(unittest.TestCase):
+    def setUp(self):
+        self.app = create_app()
+        self.app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
+
+    def test_detects_delete_submission_without_submit_button_field(self):
+        with self.app.test_request_context(
+            "/merge-requests/main-branch",
+            method="POST",
+            data={
+                "main_delete-project_id": "123",
+                "main_delete-path": "providers-049/provider-a",
+                "main_delete-entry_type": "tree",
+            },
+        ):
+            form = MainBranchActionForm(prefix="main")
+            delete_form = MainBranchDeletePathForm(prefix="main_delete")
+
+            action_request, delete_request = _main_branch_request_flags(form, delete_form)
+
+            self.assertFalse(action_request)
+            self.assertTrue(delete_request)
 
 
 if __name__ == "__main__":
