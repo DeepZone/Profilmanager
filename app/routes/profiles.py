@@ -1,6 +1,4 @@
 import base64
-from datetime import datetime
-
 from flask import (
     Blueprint,
     abort,
@@ -20,6 +18,7 @@ from app.extensions import db
 from app.forms import ProfileEditForm, ProfileForm, PushToGitLabForm
 from app.models import AuditLog, GitLabMergeRequest, Profile, ProfileFile, Setting
 from app.services.gitlab_service import GitLabService, GitLabServiceError
+from app.services.repo_structure_service import build_branch_name, build_repo_paths
 from app.services.storage_service import StorageService
 
 profiles_bp = Blueprint("profiles", __name__, url_prefix="/profiles")
@@ -127,9 +126,14 @@ def detail(profile_id):
     push_form = PushToGitLabForm()
     latest = max(profile.files, key=lambda x: x.version)
     push_form.profile_file_id.data = str(latest.id)
-    push_form.branch_name.data = f"profile/{profile.id}-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+    push_form.branch_name.data = build_branch_name(
+        current_user.shortcode,
+        profile.dial_code,
+        profile.provider or profile.name,
+    )
     push_form.commit_message.data = f"Update profile {profile.name} v{latest.version}"
     push_form.mr_title.data = f"Profile update: {profile.name} v{latest.version}"
+    push_form.target_branch.data = "main"
 
     project_setting = Setting.query.filter_by(key="gitlab_project_id").first()
     if project_setting and project_setting.value:
@@ -237,8 +241,15 @@ def push_to_gitlab():
             Setting.query.filter_by(key="gitlab_project_id").first().value
         )
 
+        branch_name = build_branch_name(
+            current_user.shortcode,
+            profile.dial_code,
+            profile.provider or profile.name,
+        )
+        target_branch = "main"
+
         try:
-            service.create_branch(project_id, form.branch_name.data, form.target_branch.data)
+            service.create_branch(project_id, branch_name, target_branch)
         except GitLabServiceError as exc:
             if "already exists" not in str(exc):
                 raise
@@ -246,20 +257,40 @@ def push_to_gitlab():
         with open(pf.stored_path, "rb") as f:
             encoded = base64.b64encode(f.read()).decode()
 
-        repo_path = f"profiles/user_{profile.user_id}/{profile.name}/v{pf.version}.tar"
+        repo_paths = build_repo_paths(
+            profile.dial_code,
+            profile.provider or profile.name,
+            pf.original_filename,
+        )
+
+        for directory_key in ("gui_importe", "providerprofile", "tr069_nachlader"):
+            keep_file_path = f"{repo_paths[directory_key]}/.gitkeep"
+            try:
+                service.commit_file(
+                    project_id,
+                    branch_name,
+                    keep_file_path,
+                    "",
+                    f"Ensure folder exists: {repo_paths[directory_key]}",
+                )
+            except GitLabServiceError as exc:
+                if "already exists" not in str(exc):
+                    raise
+
+        repo_path = repo_paths["tar_path"]
         try:
             service.commit_file(
-                project_id, form.branch_name.data, repo_path, encoded, form.commit_message.data
+                project_id, branch_name, repo_path, encoded, form.commit_message.data
             )
         except GitLabServiceError:
             service.update_file(
-                project_id, form.branch_name.data, repo_path, encoded, form.commit_message.data
+                project_id, branch_name, repo_path, encoded, form.commit_message.data
             )
 
         mr = service.create_merge_request(
             project_id,
-            form.branch_name.data,
-            form.target_branch.data,
+            branch_name,
+            target_branch,
             form.mr_title.data,
         )
 
@@ -267,8 +298,8 @@ def push_to_gitlab():
             profile_id=profile.id,
             created_by=current_user.id,
             project_id=project_id,
-            branch_name=form.branch_name.data,
-            target_branch=form.target_branch.data,
+            branch_name=branch_name,
+            target_branch=target_branch,
             commit_sha=mr.get("sha"),
             gitlab_mr_iid=mr["iid"],
             gitlab_mr_id=mr["id"],
