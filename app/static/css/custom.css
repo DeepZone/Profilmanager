@@ -23,10 +23,19 @@
 
 .main-sidebar {
   height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-sidebar .brand-link {
+  flex: 0 0 auto;
 }
 
 .main-sidebar .sidebar {
-  height: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
@@ -44,9 +53,7 @@
   letter-spacing: 0.01em;
   padding-top: 0.65rem;
   padding-bottom: 0.65rem;
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
+  margin-top: auto;
 }
 
 .select2-container--bootstrap4 .select2-selection--single {
