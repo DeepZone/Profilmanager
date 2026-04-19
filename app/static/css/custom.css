@@ -21,20 +21,32 @@
   background: rgba(255, 255, 255, 0.06);
 }
 
+.main-sidebar {
+  height: 100vh;
+}
+
 .main-sidebar .sidebar {
-  padding-bottom: 3.25rem;
+  height: 100%;
+  overflow: hidden;
+}
+
+.sidebar-menu-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .sidebar-version {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  flex: 0 0 auto;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(13, 17, 23, 0.95);
   letter-spacing: 0.01em;
   padding-top: 0.65rem;
   padding-bottom: 0.65rem;
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
 }
 
 .select2-container--bootstrap4 .select2-selection--single {
