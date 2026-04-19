@@ -4,7 +4,7 @@ from flask import Blueprint, abort, current_app, flash, redirect, render_templat
 from flask_login import current_user, login_required
 
 from app.extensions import db
-from app.forms import DeleteMergeRequestForm, MergeActionForm
+from app.forms import DeleteMergeRequestForm, MainBranchActionForm, MergeActionForm
 from app.models import GitLabMergeRequest, Setting
 from app.services.gitlab_service import GitLabService, GitLabServiceError
 from app.services.version_service import VersionService
@@ -32,8 +32,91 @@ def _service():
 @gitlab_bp.route("/")
 @login_required
 def index():
-    mrs = GitLabMergeRequest.query.order_by(GitLabMergeRequest.created_at.desc()).all()
+    mrs = (
+        GitLabMergeRequest.query.filter_by(status="opened")
+        .order_by(GitLabMergeRequest.created_at.desc())
+        .all()
+    )
     return render_template("gitlab/index.html", mrs=mrs)
+
+
+def _distinct_project_ids() -> list[int]:
+    project_ids = {
+        project_id
+        for (project_id,) in db.session.query(GitLabMergeRequest.project_id).distinct().all()
+        if project_id
+    }
+
+    default_project = Setting.query.filter_by(key="gitlab_project_id").first()
+    if default_project and default_project.value:
+        try:
+            project_ids.add(int(default_project.value))
+        except ValueError:
+            current_app.logger.warning(
+                "Ungültige gitlab_project_id in Settings: %s", default_project.value
+            )
+
+    return sorted(project_ids)
+
+
+@gitlab_bp.route("/main-branch", methods=["GET", "POST"])
+@login_required
+def main_branch():
+    form = MainBranchActionForm(prefix="main")
+    action_labels = {"merge": "Merge", "close": "Schließen", "reopen": "Wiederöffnen"}
+
+    if request.method == "POST" and form.submit.data and form.validate():
+        action = form.action.data
+        if action not in action_labels:
+            abort(400)
+
+        try:
+            project_id = int(form.project_id.data)
+            mr_iid = int(form.mr_iid.data)
+        except (TypeError, ValueError):
+            abort(400)
+
+        try:
+            service = _service()
+            branch = service.get_branch(project_id, "main")
+            if not branch.get("can_push", False):
+                abort(403)
+
+            if action == "merge":
+                service.merge_request(project_id, mr_iid, squash=False)
+            else:
+                service.change_merge_request_state(project_id, mr_iid, action)
+
+            flash(f"{action_labels[action]} für MR !{mr_iid} wurde ausgeführt.", "success")
+        except GitLabServiceError as exc:
+            flash(f"Aktion fehlgeschlagen: {exc}", "danger")
+
+        return redirect(url_for("gitlab.main_branch"))
+
+    projects = []
+    error = None
+
+    try:
+        service = _service()
+        for project_id in _distinct_project_ids():
+            branch = service.get_branch(project_id, "main")
+            merge_requests = service.list_merge_requests(
+                project_id, state="all", target_branch="main"
+            )
+            projects.append(
+                {
+                    "project_id": project_id,
+                    "branch": branch,
+                    "can_admin_main": branch.get("can_push", False),
+                    "merge_requests": merge_requests,
+                }
+            )
+    except GitLabServiceError as exc:
+        error = str(exc)
+
+    return render_template(
+        "gitlab/main_branch.html", projects=projects, error=error, form=form
+    )
 
 
 @gitlab_bp.route("/<int:mr_id>", methods=["GET", "POST"])
