@@ -9,6 +9,10 @@
       <p><b>Kommentar:</b> {{ profile.comment }}</p>
       <p><b>Aktuelle Version:</b> {{ profile.current_version }}</p>
       <a class="btn btn-secondary" href="{{ url_for('profiles.edit', profile_id=profile.id) }}">Bearbeiten</a>
+      <form method="post" action="{{ url_for('profiles.delete', profile_id=profile.id) }}" style="display:inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-danger" onclick="return confirm('Profil wirklich löschen?')">Löschen</button>
+      </form>
       <hr>
       <h5>Dateiversionen</h5>
       <ul>
