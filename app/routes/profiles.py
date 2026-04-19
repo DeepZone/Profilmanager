@@ -52,6 +52,107 @@ def _apply_country_metadata(profile: Profile, selected_iso_code: str) -> None:
     profile.dial_code = country.dial_code
 
 
+def _resolve_project_id(explicit_project_id: str | None = None) -> int:
+    if explicit_project_id:
+        return int(explicit_project_id)
+
+    project_setting = Setting.query.filter_by(key="gitlab_project_id").first()
+    if not project_setting or not project_setting.value:
+        raise GitLabServiceError("GitLab Projekt-ID fehlt.")
+    return int(project_setting.value)
+
+
+def _push_profile_file_to_gitlab(
+    profile: Profile,
+    profile_file: ProfileFile,
+    commit_message: str,
+    mr_title: str,
+    project_id: int | None = None,
+):
+    service = _get_gitlab_service_or_raise()
+    resolved_project_id = project_id if project_id is not None else _resolve_project_id()
+    branch_name = build_branch_name(
+        current_user.shortcode,
+        profile.dial_code,
+        profile.provider or profile.name,
+    )
+    target_branch = "main"
+
+    try:
+        service.create_branch(resolved_project_id, branch_name, target_branch)
+    except GitLabServiceError as exc:
+        if "already exists" not in str(exc):
+            raise
+
+    with open(profile_file.stored_path, "rb") as file_obj:
+        encoded = base64.b64encode(file_obj.read()).decode()
+
+    repo_paths = build_repo_paths(
+        profile.dial_code,
+        profile.provider or profile.name,
+        profile_file.original_filename,
+    )
+
+    for directory_key in ("gui_importe", "providerprofile", "tr069_nachlader"):
+        keep_file_path = f"{repo_paths[directory_key]}/.gitkeep"
+        try:
+            service.commit_file(
+                resolved_project_id,
+                branch_name,
+                keep_file_path,
+                "",
+                f"Ensure folder exists: {repo_paths[directory_key]}",
+            )
+        except GitLabServiceError as exc:
+            if "already exists" not in str(exc):
+                raise
+
+    repo_path = repo_paths["tar_path"]
+    try:
+        service.commit_file(resolved_project_id, branch_name, repo_path, encoded, commit_message)
+    except GitLabServiceError:
+        service.update_file(resolved_project_id, branch_name, repo_path, encoded, commit_message)
+
+    mr = service.create_merge_request(
+        resolved_project_id,
+        branch_name,
+        target_branch,
+        mr_title,
+    )
+    return mr, resolved_project_id, branch_name, target_branch
+
+
+def _delete_profile_files_from_git(profile: Profile) -> None:
+    files = list(profile.files)
+    if not files:
+        return
+
+    service = _get_gitlab_service_or_raise()
+    project_id = _resolve_project_id()
+    repo_paths = {
+        build_repo_paths(
+            profile.dial_code,
+            profile.provider or profile.name,
+            profile_file.original_filename,
+        )["tar_path"]
+        for profile_file in files
+    }
+
+    for repo_path in repo_paths:
+        try:
+            service.delete_file(
+                project_id,
+                "main",
+                repo_path,
+                f"Delete profile {profile.name} ({profile.id})",
+            )
+        except GitLabServiceError as exc:
+            error = str(exc).lower()
+            if "404" in error or "not found" in error:
+                continue
+            raise
+
+
 @profiles_bp.route("/mine")
 @login_required
 def mine():
@@ -117,6 +218,48 @@ def upload():
             )
         )
         db.session.commit()
+
+        if form.create_mr.data:
+            try:
+                mr, project_id, branch_name, target_branch = _push_profile_file_to_gitlab(
+                    profile=profile,
+                    profile_file=profile_file,
+                    commit_message=f"Update profile {profile.name} v{profile_file.version}",
+                    mr_title=f"Profile update: {profile.name} v{profile_file.version}",
+                )
+                db.session.add(
+                    GitLabMergeRequest(
+                        profile_id=profile.id,
+                        created_by=current_user.id,
+                        project_id=project_id,
+                        branch_name=branch_name,
+                        target_branch=target_branch,
+                        commit_sha=mr.get("sha"),
+                        gitlab_mr_iid=mr["iid"],
+                        gitlab_mr_id=mr["id"],
+                        title=mr["title"],
+                        status=mr["state"],
+                        web_url=mr.get("web_url"),
+                    )
+                )
+                db.session.add(
+                    AuditLog(
+                        user_id=current_user.id,
+                        action="gitlab_push",
+                        details=f"MR {mr['iid']} für Profil {profile.id} erstellt",
+                    )
+                )
+                db.session.commit()
+                flash("Profil erfolgreich hochgeladen und Merge Request erstellt.", "success")
+                return redirect(url_for("profiles.detail", profile_id=profile.id))
+            except (GitLabServiceError, ValueError, AttributeError) as exc:
+                db.session.rollback()
+                flash(
+                    f"Profil hochgeladen, aber Merge Request konnte nicht erstellt werden: {exc}",
+                    "warning",
+                )
+                return redirect(url_for("profiles.detail", profile_id=profile.id))
+
         flash("Profil erfolgreich hochgeladen.", "success")
         return redirect(url_for("profiles.mine"))
 
@@ -240,6 +383,13 @@ def delete(profile_id):
             {ProfileFile.profile_id: None}, synchronize_session=False
         )
 
+    try:
+        _delete_profile_files_from_git(profile)
+    except (GitLabServiceError, ValueError) as exc:
+        db.session.rollback()
+        flash(f"Profil konnte nicht aus GitLab gelöscht werden: {exc}", "danger")
+        return redirect(url_for("profiles.detail", profile_id=profile.id))
+
     db.session.delete(profile)
     db.session.add(
         AuditLog(
@@ -281,62 +431,13 @@ def push_to_gitlab():
         abort(403)
 
     try:
-        service = _get_gitlab_service_or_raise()
-        project_id = int(form.project_id.data) if form.project_id.data else int(
-            Setting.query.filter_by(key="gitlab_project_id").first().value
-        )
-
-        branch_name = build_branch_name(
-            current_user.shortcode,
-            profile.dial_code,
-            profile.provider or profile.name,
-        )
-        target_branch = "main"
-
-        try:
-            service.create_branch(project_id, branch_name, target_branch)
-        except GitLabServiceError as exc:
-            if "already exists" not in str(exc):
-                raise
-
-        with open(pf.stored_path, "rb") as f:
-            encoded = base64.b64encode(f.read()).decode()
-
-        repo_paths = build_repo_paths(
-            profile.dial_code,
-            profile.provider or profile.name,
-            pf.original_filename,
-        )
-
-        for directory_key in ("gui_importe", "providerprofile", "tr069_nachlader"):
-            keep_file_path = f"{repo_paths[directory_key]}/.gitkeep"
-            try:
-                service.commit_file(
-                    project_id,
-                    branch_name,
-                    keep_file_path,
-                    "",
-                    f"Ensure folder exists: {repo_paths[directory_key]}",
-                )
-            except GitLabServiceError as exc:
-                if "already exists" not in str(exc):
-                    raise
-
-        repo_path = repo_paths["tar_path"]
-        try:
-            service.commit_file(
-                project_id, branch_name, repo_path, encoded, form.commit_message.data
-            )
-        except GitLabServiceError:
-            service.update_file(
-                project_id, branch_name, repo_path, encoded, form.commit_message.data
-            )
-
-        mr = service.create_merge_request(
-            project_id,
-            branch_name,
-            target_branch,
-            form.mr_title.data,
+        project_id = _resolve_project_id(form.project_id.data)
+        mr, project_id, branch_name, target_branch = _push_profile_file_to_gitlab(
+            profile=profile,
+            profile_file=pf,
+            commit_message=form.commit_message.data,
+            mr_title=form.mr_title.data,
+            project_id=project_id,
         )
 
         local_mr = GitLabMergeRequest(
