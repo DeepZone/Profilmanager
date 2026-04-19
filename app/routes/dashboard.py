@@ -12,8 +12,10 @@ dashboard_bp = Blueprint("dashboard", __name__)
 @dashboard_bp.route("/")
 @login_required
 def index():
+    total_profile_count = Profile.query.count()
+    my_profile_count = Profile.query.filter_by(user_id=current_user.id).count()
+
     if current_user.is_admin:
-        profile_count = Profile.query.count()
         user_count = User.query.count()
         mr_count = GitLabMergeRequest.query.filter_by(status="opened").count()
         country_counts_query = (
@@ -23,7 +25,6 @@ def index():
             .all()
         )
     else:
-        profile_count = Profile.query.filter_by(user_id=current_user.id).count()
         user_count = None
         mr_count = (
             GitLabMergeRequest.query.join(Profile)
@@ -52,7 +53,8 @@ def index():
 
     return render_template(
         "dashboard.html",
-        profile_count=profile_count,
+        total_profile_count=total_profile_count,
+        my_profile_count=my_profile_count,
         user_count=user_count,
         mr_count=mr_count,
         country_distribution=country_distribution,

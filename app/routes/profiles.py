@@ -278,17 +278,23 @@ def _delete_local_profile_files(profile_files: list[ProfileFile]) -> None:
 @login_required
 def mine():
     q = request.args.get("q", "").strip()
-    sort = request.args.get("sort", "updated_at")
-    order = request.args.get("order", "desc")
+    sort = request.args.get("sort", "provider")
+    order = request.args.get("order", "asc")
     page = request.args.get("page", 1, type=int)
 
     query = Profile.query.filter_by(user_id=current_user.id)
     if q:
-        query = query.filter(Profile.name.ilike(f"%{q}%"))
+        query = query.filter(or_(Profile.name.ilike(f"%{q}%"), Profile.provider.ilike(f"%{q}%")))
 
-    col = getattr(Profile, sort, Profile.updated_at)
-    col = col.desc() if order == "desc" else col.asc()
-    pagination = query.order_by(col).paginate(page=page, per_page=10)
+    sortable_columns = {
+        "provider": Profile.provider,
+        "name": Profile.name,
+        "updated_at": Profile.updated_at,
+        "current_version": Profile.current_version,
+    }
+    sort_column = sortable_columns.get(sort, Profile.provider)
+    order_expression = sort_column.desc() if order == "desc" else sort_column.asc()
+    pagination = query.order_by(order_expression, Profile.name.asc()).paginate(page=page, per_page=10)
     return render_template("profiles/mine.html", pagination=pagination, q=q, sort=sort, order=order)
 
 

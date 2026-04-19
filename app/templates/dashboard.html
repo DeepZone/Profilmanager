@@ -1,10 +1,31 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="row">
-  <div class="col-md-4"><div class="small-box bg-info"><div class="inner"><h3>{{ profile_count }}</h3><p>Profile</p></div></div></div>
-  <div class="col-md-4"><div class="small-box bg-success"><div class="inner"><h3>{{ mr_count }}</h3><p>Merge Requests</p></div></div></div>
+  <div class="{% if user_count is not none %}col-md-3{% else %}col-md-4{% endif %}">
+    <div class="small-box bg-info">
+      <div class="inner"><h3>{{ total_profile_count }}</h3><p>Profile (gesamt)</p></div>
+      <div class="icon"><i class="fas fa-layer-group"></i></div>
+    </div>
+  </div>
+  <div class="{% if user_count is not none %}col-md-3{% else %}col-md-4{% endif %}">
+    <div class="small-box bg-primary">
+      <div class="inner"><h3>{{ my_profile_count }}</h3><p>Meine Profile</p></div>
+      <div class="icon"><i class="fas fa-user-tag"></i></div>
+    </div>
+  </div>
+  <div class="{% if user_count is not none %}col-md-3{% else %}col-md-4{% endif %}">
+    <div class="small-box bg-success">
+      <div class="inner"><h3>{{ mr_count }}</h3><p>Merge Requests</p></div>
+      <div class="icon"><i class="fas fa-code-branch"></i></div>
+    </div>
+  </div>
   {% if user_count is not none %}
-  <div class="col-md-4"><div class="small-box bg-warning"><div class="inner"><h3>{{ user_count }}</h3><p>Benutzer</p></div></div></div>
+  <div class="col-md-3">
+    <div class="small-box bg-warning">
+      <div class="inner"><h3>{{ user_count }}</h3><p>Benutzer</p></div>
+      <div class="icon"><i class="fas fa-users"></i></div>
+    </div>
+  </div>
   {% endif %}
 </div>
 
