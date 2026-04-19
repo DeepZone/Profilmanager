@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <div class="card-header"><h3 class="card-title">MR #{{ mr.gitlab_mr_iid }} - {{ mr.title }}</h3></div>
+  <div class="card-body">
+    {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+    <p><b>Status:</b> {{ details.state if details else mr.status }}</p>
+    <p><b>URL:</b> <a href="{{ mr.web_url }}" target="_blank">{{ mr.web_url }}</a></p>
+    <h5>Diff</h5>
+    {% for change in changes %}
+      <div class="border p-2 mb-3">
+        <p><b>{{ change.new_path }}</b></p>
+        <pre class="diff-box">{{ change.diff }}</pre>
+      </div>
+    {% endfor %}
+    {% if current_user.is_admin and (details and details.state == 'opened') %}
+    <form method="post">
+      {{ form.hidden_tag() }}
+      <div class="form-check mb-2">{{ form.squash(class='form-check-input') }} {{ form.squash.label(class='form-check-label') }}</div>
+      {{ form.submit(class='btn btn-success') }}
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <div class="card-header"><h3 class="card-title">Merge Requests</h3></div>
+  <div class="card-body table-responsive p-0">
+    <table class="table table-striped">
+      <thead><tr><th>Titel</th><th>Status</th><th>Branch</th><th>Erstellt</th><th></th></tr></thead>
+      <tbody>
+      {% for mr in mrs %}
+      <tr>
+        <td>{{ mr.title }}</td><td>{{ mr.status }}</td><td>{{ mr.branch_name }} → {{ mr.target_branch }}</td><td>{{ mr.created_at }}</td>
+        <td><a href="{{ url_for('gitlab.detail', mr_id=mr.id) }}" class="btn btn-sm btn-info">Details</a></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
