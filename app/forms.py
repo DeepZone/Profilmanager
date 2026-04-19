@@ -1,3 +1,4 @@
+from flask_login import current_user
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed, FileField, FileRequired
 from wtforms import (
@@ -10,7 +11,9 @@ from wtforms import (
     SubmitField,
     TextAreaField,
 )
-from wtforms.validators import DataRequired, Email, Length, NumberRange, Optional
+from wtforms.validators import DataRequired, Email, Length, NumberRange, Optional, Regexp, ValidationError
+
+from app.models import User
 
 
 class LoginForm(FlaskForm):
@@ -22,10 +25,52 @@ class LoginForm(FlaskForm):
 class UserForm(FlaskForm):
     username = StringField("Benutzername", validators=[DataRequired(), Length(max=80)])
     email = StringField("E-Mail", validators=[DataRequired(), Email(), Length(max=120)])
+    shortcode = StringField(
+        "Kürzel",
+        validators=[
+            DataRequired(),
+            Length(min=3, max=3),
+            Regexp(r"^[a-zA-Z]{3}$", message="Kürzel muss aus genau 3 Buchstaben bestehen"),
+        ],
+    )
     role = SelectField("Rolle", choices=[("User", "User"), ("Admin", "Admin")])
     password = PasswordField("Passwort", validators=[Optional(), Length(min=8, max=128)])
     active = BooleanField("Aktiv", default=True)
     submit = SubmitField("Speichern")
+
+    def validate_shortcode(self, field):
+        normalized_shortcode = (field.data or "").strip().lower()
+        field.data = normalized_shortcode
+
+        if len(normalized_shortcode) != 3 or not normalized_shortcode.isalpha():
+            raise ValidationError("Kürzel muss aus genau 3 Buchstaben bestehen")
+
+        query = User.query.filter(User.shortcode == normalized_shortcode)
+        if getattr(self, "user_id", None):
+            query = query.filter(User.id != self.user_id)
+
+        if query.first():
+            raise ValidationError("Dieses Kürzel ist bereits vergeben")
+
+
+class SelfProfileForm(FlaskForm):
+    username = StringField("Benutzername", validators=[DataRequired(), Length(max=80)])
+    email = StringField("E-Mail", validators=[DataRequired(), Email(), Length(max=120)])
+    shortcode = StringField(
+        "Kürzel",
+        validators=[DataRequired(), Length(min=3, max=3), Regexp(r"^[a-z]{3}$")],
+    )
+    submit = SubmitField("Speichern")
+
+    def validate_shortcode(self, field):
+        if not current_user.is_admin:
+            return
+
+        normalized_shortcode = (field.data or "").strip().lower()
+        field.data = normalized_shortcode
+
+        if len(normalized_shortcode) != 3 or not normalized_shortcode.isalpha():
+            raise ValidationError("Kürzel muss aus genau 3 Buchstaben bestehen")
 
 
 class ProfileForm(FlaskForm):
