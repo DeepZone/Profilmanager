@@ -64,7 +64,7 @@ class Profile(db.Model):
     updated_at = db.Column(
         db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
     owner = db.relationship("User", back_populates="profiles")
     files = db.relationship(
@@ -105,7 +105,9 @@ class GitLabMergeRequest(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     profile_id = db.Column(db.Integer, db.ForeignKey("profiles.id"), nullable=False)
-    created_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    created_by = db.Column(
+        db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
     project_id = db.Column(db.Integer, nullable=False)
     branch_name = db.Column(db.String(255), nullable=False)
     target_branch = db.Column(db.String(255), nullable=False)
@@ -127,7 +129,7 @@ class AuditLog(db.Model):
     __tablename__ = "audit_log"
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     action = db.Column(db.String(120), nullable=False)
     details = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)

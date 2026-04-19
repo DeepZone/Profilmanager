@@ -5,7 +5,7 @@ from flask_login import current_user, login_required
 from app.decorators import admin_required
 from app.extensions import db
 from app.forms import SelfProfileForm, UserForm
-from app.models import AuditLog, Role, User
+from app.models import AuditLog, GitLabMergeRequest, Profile, Role, User
 
 users_bp = Blueprint("users", __name__, url_prefix="/users")
 
@@ -117,6 +117,11 @@ def delete(user_id):
         flash("Sie können sich nicht selbst löschen.", "danger")
         return redirect(url_for("users.index"))
 
+    Profile.query.filter_by(user_id=user.id).update({"user_id": None}, synchronize_session=False)
+    GitLabMergeRequest.query.filter_by(created_by=user.id).update(
+        {"created_by": None}, synchronize_session=False
+    )
+    AuditLog.query.filter_by(user_id=user.id).update({"user_id": None}, synchronize_session=False)
     db.session.delete(user)
     db.session.add(
         AuditLog(user_id=current_user.id, action="user_delete", details=f"User {user.username}")
@@ -125,10 +130,7 @@ def delete(user_id):
         db.session.commit()
     except IntegrityError:
         db.session.rollback()
-        flash(
-            "Benutzer kann nicht gelöscht werden, da noch abhängige Daten vorhanden sind.",
-            "danger",
-        )
+        flash("Benutzer konnte nicht gelöscht werden.", "danger")
         return redirect(url_for("users.index"))
 
     flash("Benutzer gelöscht.", "success")
