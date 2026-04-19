@@ -1,5 +1,5 @@
 from sqlalchemy.exc import IntegrityError
-from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from app.decorators import admin_required
@@ -11,7 +11,7 @@ users_bp = Blueprint("users", __name__, url_prefix="/users")
 
 
 def _normalize_shortcode(value: str) -> str:
-    return (value or "").strip().lower()
+    return (value or "").strip().upper()
 
 
 @users_bp.route("/")
@@ -82,17 +82,12 @@ def edit(user_id):
 
     if form.validate_on_submit():
         role = Role.query.filter_by(name=form.role.data).first()
-        submitted_shortcode = _normalize_shortcode(form.shortcode.data)
-
-        if user.id == current_user.id and user.shortcode != submitted_shortcode:
-            flash("Kein User darf sein eigenes Kürzel ändern", "danger")
-            return render_template("users/form.html", form=form, title="Benutzer bearbeiten")
 
         user.username = form.username.data
         user.email = form.email.data
         user.active = form.active.data
         user.role = role
-        user.shortcode = submitted_shortcode
+        user.shortcode = _normalize_shortcode(form.shortcode.data)
         if form.password.data:
             user.set_password(form.password.data)
 

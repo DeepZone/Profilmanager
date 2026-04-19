@@ -115,6 +115,24 @@ Standard-Admin-Credentials kommen aus `.env` (`DEFAULT_ADMIN_*`).
 - Bei identischem Dateipfad wird von `create file` auf `update file` fallbackt.
 - Für produktive Sicherheit sollte das Secret Management (z. B. Vault/KMS) erweitert werden.
 
+
+## Benutzerkürzel (3 Buchstaben)
+
+- Jeder Benutzer benötigt ein eindeutiges persönliches Kürzel (`shortcode`) mit **genau 3 Buchstaben A-Z**.
+- Speicherung erfolgt intern in **Großbuchstaben**.
+- Das Kürzel kann ausschließlich durch Admins in der Benutzerverwaltung gesetzt/angepasst werden.
+- Normale Benutzer sehen ihr Kürzel im eigenen Profil nur read-only.
+- Migration `0004_shortcode_backfill_and_profile_provider_fields` füllt fehlende oder ungültige Kürzel für Bestandsbenutzer automatisch mit kollisionsfreien 3-Buchstaben-Werten.
+
+## Erweiterte Profildaten
+
+Profile enthalten zusätzlich:
+
+- `provider` (Pflichtfeld im Upload-/Edit-Formular)
+- `country_code` (ISO-Code) und `dial_code` (Landesvorwahl)
+
+Die Landesvorwahl wird über eine vollständige europäische Länderliste bereitgestellt und serverseitig auf erlaubte Werte validiert.
+
 ## Globale Anwendungsversionierung
 
 Der Profilmanager führt eine globale App-Version im Format `MAJOR.MINOR.BUILD`, die serverseitig in der Datenbank (`settings`) verwaltet wird.

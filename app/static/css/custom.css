@@ -11,3 +11,15 @@
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   letter-spacing: 0.01em;
 }
+
+.select2-container--bootstrap4 .select2-selection--single {
+  height: calc(2.25rem + 2px) !important;
+}
+
+.select2-container--bootstrap4 .select2-selection__rendered {
+  line-height: 2.25rem !important;
+}
+
+.select2-container--bootstrap4 .select2-selection__arrow {
+  height: calc(2.25rem + 2px) !important;
+}

@@ -1,12 +1,23 @@
 import base64
 from datetime import datetime
 
-from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, send_file, url_for
+from flask import (
+    Blueprint,
+    abort,
+    current_app,
+    flash,
+    redirect,
+    render_template,
+    request,
+    send_file,
+    url_for,
+)
 from flask_login import current_user, login_required
 
+from app.constants.european_countries import get_country_by_iso_code
 from app.extensions import db
 from app.forms import ProfileEditForm, ProfileForm, PushToGitLabForm
-from app.models import AuditLog, Profile, ProfileFile, Setting, GitLabMergeRequest
+from app.models import AuditLog, GitLabMergeRequest, Profile, ProfileFile, Setting
 from app.services.gitlab_service import GitLabService, GitLabServiceError
 from app.services.storage_service import StorageService
 
@@ -23,6 +34,15 @@ def _get_gitlab_service_or_raise():
     if not url or not url.value or not token or not token.value:
         raise GitLabServiceError("GitLab ist nicht vollständig konfiguriert.")
     return GitLabService(url.value, token.value)
+
+
+def _apply_country_metadata(profile: Profile, selected_iso_code: str) -> None:
+    country = get_country_by_iso_code(selected_iso_code)
+    if not country:
+        raise ValueError("Ungültige Landesvorwahl")
+
+    profile.country_code = country.iso_code
+    profile.dial_code = country.dial_code
 
 
 @profiles_bp.route("/mine")
@@ -67,11 +87,13 @@ def upload():
     if form.validate_on_submit():
         profile = Profile(
             name=form.name.data,
+            provider=form.provider.data.strip(),
             description=form.description.data,
             comment=form.comment.data,
             owner=current_user,
             current_version=1,
         )
+        _apply_country_metadata(profile, form.country_code.data)
         db.session.add(profile)
         db.session.flush()
 
@@ -112,7 +134,8 @@ def detail(profile_id):
     if project_setting and project_setting.value:
         push_form.project_id.data = project_setting.value
 
-    return render_template("profiles/detail.html", profile=profile, push_form=push_form)
+    country = get_country_by_iso_code(profile.country_code)
+    return render_template("profiles/detail.html", profile=profile, push_form=push_form, country=country)
 
 
 @profiles_bp.route("/<int:profile_id>/download/<int:file_id>")
@@ -134,9 +157,15 @@ def edit(profile_id):
         abort(403)
 
     form = ProfileEditForm(obj=profile)
+    if request.method == "GET" and profile.country_code:
+        form.country_code.data = profile.country_code
+
     if form.validate_on_submit():
+        profile.provider = form.provider.data.strip()
         profile.description = form.description.data
         profile.comment = form.comment.data
+
+        _apply_country_metadata(profile, form.country_code.data)
 
         if form.upload.data:
             profile.current_version += 1

@@ -11,8 +11,17 @@ from wtforms import (
     SubmitField,
     TextAreaField,
 )
-from wtforms.validators import DataRequired, Email, Length, NumberRange, Optional, Regexp, ValidationError
+from wtforms.validators import (
+    DataRequired,
+    Email,
+    Length,
+    NumberRange,
+    Optional,
+    Regexp,
+    ValidationError,
+)
 
+from app.constants.european_countries import european_dial_code_choices
 from app.models import User
 
 
@@ -26,11 +35,11 @@ class UserForm(FlaskForm):
     username = StringField("Benutzername", validators=[DataRequired(), Length(max=80)])
     email = StringField("E-Mail", validators=[DataRequired(), Email(), Length(max=120)])
     shortcode = StringField(
-        "Kürzel",
+        "Persönliches Benutzerkürzel",
         validators=[
             DataRequired(),
             Length(min=3, max=3),
-            Regexp(r"^[a-zA-Z]{3}$", message="Kürzel muss aus genau 3 Buchstaben bestehen"),
+            Regexp(r"^[A-Za-z]{3}$", message="Kürzel muss aus genau 3 Buchstaben (A-Z) bestehen"),
         ],
     )
     role = SelectField("Rolle", choices=[("User", "User"), ("Admin", "Admin")])
@@ -39,11 +48,11 @@ class UserForm(FlaskForm):
     submit = SubmitField("Speichern")
 
     def validate_shortcode(self, field):
-        normalized_shortcode = (field.data or "").strip().lower()
+        normalized_shortcode = (field.data or "").strip().upper()
         field.data = normalized_shortcode
 
         if len(normalized_shortcode) != 3 or not normalized_shortcode.isalpha():
-            raise ValidationError("Kürzel muss aus genau 3 Buchstaben bestehen")
+            raise ValidationError("Kürzel muss aus genau 3 Buchstaben (A-Z) bestehen")
 
         query = User.query.filter(User.shortcode == normalized_shortcode)
         if getattr(self, "user_id", None):
@@ -56,25 +65,28 @@ class UserForm(FlaskForm):
 class SelfProfileForm(FlaskForm):
     username = StringField("Benutzername", validators=[DataRequired(), Length(max=80)])
     email = StringField("E-Mail", validators=[DataRequired(), Email(), Length(max=120)])
-    shortcode = StringField(
-        "Kürzel",
-        validators=[DataRequired(), Length(min=3, max=3), Regexp(r"^[a-z]{3}$")],
-    )
+    shortcode = StringField("Persönliches Benutzerkürzel")
     submit = SubmitField("Speichern")
 
     def validate_shortcode(self, field):
         if not current_user.is_admin:
             return
 
-        normalized_shortcode = (field.data or "").strip().lower()
+        normalized_shortcode = (field.data or "").strip().upper()
         field.data = normalized_shortcode
 
-        if len(normalized_shortcode) != 3 or not normalized_shortcode.isalpha():
-            raise ValidationError("Kürzel muss aus genau 3 Buchstaben bestehen")
+        if normalized_shortcode and (len(normalized_shortcode) != 3 or not normalized_shortcode.isalpha()):
+            raise ValidationError("Kürzel muss aus genau 3 Buchstaben (A-Z) bestehen")
 
 
 class ProfileForm(FlaskForm):
     name = StringField("Profilname", validators=[DataRequired(), Length(max=200)])
+    provider = StringField("Provider", validators=[DataRequired(), Length(max=120)])
+    country_code = SelectField(
+        "Landesvorwahl",
+        choices=european_dial_code_choices(),
+        validators=[DataRequired(message="Bitte eine Landesvorwahl auswählen")],
+    )
     description = TextAreaField("Beschreibung", validators=[Optional()])
     comment = TextAreaField("Kommentar", validators=[Optional()])
     upload = FileField(
@@ -85,6 +97,12 @@ class ProfileForm(FlaskForm):
 
 
 class ProfileEditForm(FlaskForm):
+    provider = StringField("Provider", validators=[DataRequired(), Length(max=120)])
+    country_code = SelectField(
+        "Landesvorwahl",
+        choices=european_dial_code_choices(),
+        validators=[DataRequired(message="Bitte eine Landesvorwahl auswählen")],
+    )
     description = TextAreaField("Beschreibung", validators=[Optional()])
     comment = TextAreaField("Kommentar", validators=[Optional()])
     upload = FileField(
