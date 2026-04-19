@@ -59,6 +59,31 @@ def _distinct_project_ids() -> list[int]:
     return sorted(project_ids)
 
 
+def _collect_main_profiles(tree_entries: list[dict]) -> list[dict]:
+    profiles: dict[str, dict] = {}
+    for entry in tree_entries:
+        path = (entry or {}).get("path") or ""
+        parts = path.split("/")
+        if len(parts) < 2 or not parts[0].startswith("providers-"):
+            continue
+
+        profile_root = f"{parts[0]}/{parts[1]}"
+        profile_data = profiles.setdefault(
+            profile_root,
+            {
+                "path": profile_root,
+                "dial_code": parts[0].removeprefix("providers-"),
+                "provider": parts[1],
+                "file_count": 0,
+            },
+        )
+
+        if (entry or {}).get("type") == "blob":
+            profile_data["file_count"] += 1
+
+    return sorted(profiles.values(), key=lambda profile: profile["path"].lower())
+
+
 @gitlab_bp.route("/main-branch", methods=["GET", "POST"])
 @login_required
 def main_branch():
@@ -109,6 +134,7 @@ def main_branch():
                     "can_admin_main": branch.get("can_push", False),
                     "merge_requests": merge_requests,
                     "tree_entries": tree_entries,
+                    "profiles": _collect_main_profiles(tree_entries),
                 }
             )
     except GitLabServiceError as exc:
