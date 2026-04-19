@@ -111,27 +111,21 @@
       const dependencyDescription =
         `${fileCount} Datei(en), ${mrCount} Merge Request(s)`;
 
-      if (
-        window.confirm(
-          `Es sind noch abhängige Daten vorhanden (${dependencyDescription}). ` +
-          "Sollen diese ebenfalls gelöscht werden?"
-        )
-      ) {
+      const deleteDependencies = window.confirm(
+        `Es sind noch abhängige Daten vorhanden (${dependencyDescription}). ` +
+        "Sollen diese ebenfalls gelöscht werden?\n" +
+        "OK = Ja, Abbrechen = Nein (abhängige Daten behalten)"
+      );
+
+      if (deleteDependencies) {
         deleteDependenciesInput.value = "1";
-        return;
-      }
-
-      if (
-        window.confirm(
-          `Abhängige Daten bleiben erhalten (${dependencyDescription}). ` +
-          "Soll nur das Profil gelöscht werden?"
-        )
-      ) {
+      } else {
         keepDependenciesInput.value = "1";
-        return;
       }
 
-      event.preventDefault();
+      if (!window.confirm("Profil wirklich löschen?")) {
+        event.preventDefault();
+      }
     });
   })();
 </script>
