@@ -111,18 +111,32 @@ def _collect_files_for_delete(tree_entries: list[dict], target_path: str, entry_
     )
 
 
+def _main_branch_request_flags(
+    form: MainBranchActionForm, delete_form: MainBranchDeletePathForm
+) -> tuple[bool, bool]:
+    if request.method != "POST":
+        return False, False
+
+    request_keys = set(request.form.keys())
+    action_keys = {form.action.name, form.project_id.name, form.mr_iid.name}
+    delete_keys = {delete_form.project_id.name, delete_form.path.name, delete_form.entry_type.name}
+
+    return action_keys.issubset(request_keys), delete_keys.issubset(request_keys)
+
+
 @gitlab_bp.route("/main-branch", methods=["GET", "POST"])
 @login_required
 def main_branch():
     form = MainBranchActionForm(prefix="main")
     delete_form = MainBranchDeletePathForm(prefix="main_delete")
     action_labels = {"merge": "Merge", "close": "Schließen", "reopen": "Wiederöffnen"}
+    action_request, delete_request = _main_branch_request_flags(form, delete_form)
 
-    if request.method == "POST" and form.submit.data and not form.validate():
+    if action_request and not form.validate():
         flash("Aktion konnte nicht ausgeführt werden. Bitte Formularangaben prüfen.", "danger")
         return redirect(url_for("gitlab.main_branch"))
 
-    if request.method == "POST" and form.submit.data and form.validate():
+    if action_request and form.validate():
         action = form.action.data
         if action not in action_labels:
             abort(400)
@@ -150,11 +164,11 @@ def main_branch():
 
         return redirect(url_for("gitlab.main_branch"))
 
-    if request.method == "POST" and delete_form.submit.data and not delete_form.validate():
+    if delete_request and not delete_form.validate():
         flash("Löschen konnte nicht ausgeführt werden. Bitte Anfrage erneut senden.", "danger")
         return redirect(url_for("gitlab.main_branch"))
 
-    if request.method == "POST" and delete_form.submit.data and delete_form.validate():
+    if delete_request and delete_form.validate():
         try:
             project_id = int(delete_form.project_id.data)
         except (TypeError, ValueError):
