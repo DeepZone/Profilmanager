@@ -12,6 +12,7 @@ from flask import (
 )
 from flask_login import current_user, login_required
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import or_
 
 from app.constants.european_countries import get_country_by_iso_code
 from app.extensions import db
@@ -296,15 +297,25 @@ def mine():
 def all_profiles():
     q = request.args.get("q", "").strip()
     user_id = request.args.get("user_id", type=int)
+    sort = request.args.get("sort", "provider")
+    order = request.args.get("order", "asc")
     page = request.args.get("page", 1, type=int)
 
     query = Profile.query
     if q:
-        query = query.filter(Profile.name.ilike(f"%{q}%"))
+        query = query.filter(or_(Profile.name.ilike(f"%{q}%"), Profile.provider.ilike(f"%{q}%")))
     if user_id:
         query = query.filter_by(user_id=user_id)
 
-    pagination = query.order_by(Profile.updated_at.desc()).paginate(page=page, per_page=15)
+    sortable_columns = {
+        "provider": Profile.provider,
+        "name": Profile.name,
+        "updated_at": Profile.updated_at,
+        "current_version": Profile.current_version,
+    }
+    sort_column = sortable_columns.get(sort, Profile.provider)
+    order_expression = sort_column.desc() if order == "desc" else sort_column.asc()
+    pagination = query.order_by(order_expression, Profile.name.asc()).paginate(page=page, per_page=15)
     orphan_files = []
     if current_user.is_admin:
         orphan_files = (
@@ -317,6 +328,8 @@ def all_profiles():
         "profiles/all.html",
         pagination=pagination,
         q=q,
+        sort=sort,
+        order=order,
         user_id=user_id,
         orphan_files=orphan_files,
     )
