@@ -2,20 +2,41 @@
 {% block content %}
 <div class="card card-primary">
   <div class="card-header"><h3 class="card-title">Mein Benutzerprofil</h3></div>
-  <div class="card-body">
-    <div class="form-group">
-      {{ form.username.label }}
-      {{ form.username(class='form-control', readonly=true) }}
+  <form method="post">
+    <div class="card-body">
+      {{ form.hidden_tag() }}
+      <div class="form-group">
+        {{ form.username.label }}
+        {{ form.username(class='form-control', readonly=true) }}
+      </div>
+      <div class="form-group">
+        {{ form.email.label }}
+        {{ form.email(class='form-control', readonly=true) }}
+      </div>
+      <div class="form-group">
+        {{ form.shortcode.label }}
+        {{ form.shortcode(class='form-control', readonly=true) }}
+        <small class="form-text text-muted">Dein persönliches Benutzerkürzel ist nur durch Admins in der Benutzerverwaltung änderbar.</small>
+      </div>
+
+      <hr>
+      <h5>Passwort ändern</h5>
+      <div class="form-group">
+        {{ form.current_password.label }}
+        {{ form.current_password(class='form-control') }}
+      </div>
+      <div class="form-group">
+        {{ form.new_password.label }}
+        {{ form.new_password(class='form-control') }}
+      </div>
+      <div class="form-group">
+        {{ form.confirm_new_password.label }}
+        {{ form.confirm_new_password(class='form-control') }}
+      </div>
     </div>
-    <div class="form-group">
-      {{ form.email.label }}
-      {{ form.email(class='form-control', readonly=true) }}
+    <div class="card-footer">
+      {{ form.submit(class='btn btn-primary') }}
     </div>
-    <div class="form-group">
-      {{ form.shortcode.label }}
-      {{ form.shortcode(class='form-control', readonly=true) }}
-      <small class="form-text text-muted">Dein persönliches Benutzerkürzel ist nur durch Admins in der Benutzerverwaltung änderbar.</small>
-    </div>
-  </div>
+  </form>
 </div>
 {% endblock %}
