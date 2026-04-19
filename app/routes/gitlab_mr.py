@@ -4,7 +4,12 @@ from flask import Blueprint, abort, current_app, flash, redirect, render_templat
 from flask_login import current_user, login_required
 
 from app.extensions import db
-from app.forms import DeleteMergeRequestForm, MainBranchActionForm, MergeActionForm
+from app.forms import (
+    DeleteMergeRequestForm,
+    MainBranchActionForm,
+    MainBranchDeletePathForm,
+    MergeActionForm,
+)
 from app.models import GitLabMergeRequest, Setting
 from app.services.gitlab_service import GitLabService, GitLabServiceError
 from app.services.version_service import VersionService
@@ -84,10 +89,33 @@ def _collect_main_profiles(tree_entries: list[dict]) -> list[dict]:
     return sorted(profiles.values(), key=lambda profile: profile["path"].lower())
 
 
+def _collect_files_for_delete(tree_entries: list[dict], target_path: str, entry_type: str) -> list[str]:
+    normalized_target = (target_path or "").strip().strip("/")
+    if not normalized_target:
+        return []
+
+    if entry_type == "blob":
+        return [normalized_target]
+
+    prefix = f"{normalized_target}/"
+    return sorted(
+        {
+            (entry or {}).get("path")
+            for entry in tree_entries
+            if (entry or {}).get("type") == "blob"
+            and (
+                ((entry or {}).get("path") == normalized_target)
+                or ((entry or {}).get("path") or "").startswith(prefix)
+            )
+        }
+    )
+
+
 @gitlab_bp.route("/main-branch", methods=["GET", "POST"])
 @login_required
 def main_branch():
     form = MainBranchActionForm(prefix="main")
+    delete_form = MainBranchDeletePathForm(prefix="main_delete")
     action_labels = {"merge": "Merge", "close": "Schließen", "reopen": "Wiederöffnen"}
 
     if request.method == "POST" and form.submit.data and form.validate():
@@ -118,6 +146,43 @@ def main_branch():
 
         return redirect(url_for("gitlab.main_branch"))
 
+    if request.method == "POST" and delete_form.submit.data and delete_form.validate():
+        try:
+            project_id = int(delete_form.project_id.data)
+        except (TypeError, ValueError):
+            abort(400)
+
+        target_path = (delete_form.path.data or "").strip()
+        entry_type = (delete_form.entry_type.data or "").strip()
+        if entry_type not in {"blob", "tree"}:
+            abort(400)
+        if not target_path:
+            abort(400)
+
+        try:
+            service = _service()
+            branch = service.get_branch(project_id, "main")
+            if not branch.get("can_push", False):
+                abort(403)
+
+            tree_entries = service.list_repository_tree(project_id, ref="main", recursive=True)
+            file_paths = _collect_files_for_delete(tree_entries, target_path, entry_type)
+            if not file_paths:
+                flash(f"Unterhalb von {target_path} wurden keine löschbaren Dateien gefunden.", "warning")
+                return redirect(url_for("gitlab.main_branch"))
+
+            service.create_commit(
+                project_id,
+                "main",
+                f"Main-Branch Verwaltung: Lösche {target_path}",
+                [{"action": "delete", "file_path": file_path} for file_path in file_paths],
+            )
+            flash(f"{target_path} wurde aus main gelöscht ({len(file_paths)} Datei(en)).", "success")
+        except GitLabServiceError as exc:
+            flash(f"Löschen fehlgeschlagen: {exc}", "danger")
+
+        return redirect(url_for("gitlab.main_branch"))
+
     projects = []
     error = None
 
@@ -141,7 +206,11 @@ def main_branch():
         error = str(exc)
 
     return render_template(
-        "gitlab/main_branch.html", projects=projects, error=error, form=form
+        "gitlab/main_branch.html",
+        projects=projects,
+        error=error,
+        form=form,
+        delete_form=delete_form,
     )
 
 

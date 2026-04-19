@@ -1,6 +1,6 @@
 import unittest
 
-from app.routes.gitlab_mr import _collect_main_profiles, _merge_was_successful
+from app.routes.gitlab_mr import _collect_files_for_delete, _collect_main_profiles, _merge_was_successful
 
 
 class MergeStateTestCase(unittest.TestCase):
@@ -40,6 +40,35 @@ class MainBranchProfileCollectionTestCase(unittest.TestCase):
 
         self.assertEqual("providers-049/provider-a", result[1]["path"])
         self.assertEqual(2, result[1]["file_count"])
+
+
+class MainBranchDeleteCollectionTestCase(unittest.TestCase):
+    def setUp(self):
+        self.tree_entries = [
+            {"path": "providers-049/provider-a", "type": "tree"},
+            {"path": "providers-049/provider-a/providerprofile", "type": "tree"},
+            {"path": "providers-049/provider-a/providerprofile/p1.cfg", "type": "blob"},
+            {"path": "providers-049/provider-a/gui_importe/file.export", "type": "blob"},
+            {"path": "README.md", "type": "blob"},
+        ]
+
+    def test_collects_single_file_for_blob(self):
+        result = _collect_files_for_delete(self.tree_entries, "README.md", "blob")
+        self.assertEqual(["README.md"], result)
+
+    def test_collects_all_nested_files_for_tree(self):
+        result = _collect_files_for_delete(self.tree_entries, "providers-049/provider-a", "tree")
+        self.assertEqual(
+            [
+                "providers-049/provider-a/gui_importe/file.export",
+                "providers-049/provider-a/providerprofile/p1.cfg",
+            ],
+            result,
+        )
+
+    def test_returns_empty_for_missing_path(self):
+        result = _collect_files_for_delete(self.tree_entries, "providers-999/provider-x", "tree")
+        self.assertEqual([], result)
 
 
 if __name__ == "__main__":

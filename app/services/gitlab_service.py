@@ -73,6 +73,17 @@ class GitLabService:
             data={"branch": branch, "commit_message": message},
         )
 
+    def create_commit(self, project_id: int, branch: str, message: str, actions: list[dict]):
+        return self._request(
+            "POST",
+            f"/projects/{project_id}/repository/commits",
+            json={
+                "branch": branch,
+                "commit_message": message,
+                "actions": actions,
+            },
+        )
+
     def create_merge_request(
         self, project_id: int, source_branch: str, target_branch: str, title: str
     ):
