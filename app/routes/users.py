@@ -31,7 +31,23 @@ def index():
 @login_required
 def me():
     form = SelfProfileForm(obj=current_user)
-    form.submit.render_kw = {"disabled": True}
+    if form.validate_on_submit():
+        if not current_user.check_password(form.current_password.data):
+            flash("Aktuelles Passwort ist nicht korrekt.", "danger")
+            return render_template("users/me.html", form=form)
+
+        current_user.set_password(form.new_password.data)
+        db.session.add(
+            AuditLog(
+                user_id=current_user.id,
+                action="user_password_change",
+                details=f"User {current_user.username} changed own password",
+            )
+        )
+        db.session.commit()
+        flash("Passwort erfolgreich geändert.", "success")
+        return redirect(url_for("users.me"))
+
     return render_template("users/me.html", form=form)
 
 

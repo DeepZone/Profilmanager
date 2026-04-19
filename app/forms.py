@@ -14,6 +14,7 @@ from wtforms import (
 from wtforms.validators import (
     DataRequired,
     Email,
+    EqualTo,
     Length,
     NumberRange,
     Optional,
@@ -66,6 +67,16 @@ class SelfProfileForm(FlaskForm):
     username = StringField("Benutzername", validators=[DataRequired(), Length(max=80)])
     email = StringField("E-Mail", validators=[DataRequired(), Email(), Length(max=120)])
     shortcode = StringField("Persönliches Benutzerkürzel")
+    current_password = PasswordField(
+        "Aktuelles Passwort", validators=[DataRequired(), Length(min=8, max=128)]
+    )
+    new_password = PasswordField(
+        "Neues Passwort", validators=[DataRequired(), Length(min=8, max=128)]
+    )
+    confirm_new_password = PasswordField(
+        "Neues Passwort bestätigen",
+        validators=[DataRequired(), EqualTo("new_password", message="Passwörter stimmen nicht überein")],
+    )
     submit = SubmitField("Speichern")
 
     def validate_shortcode(self, field):
