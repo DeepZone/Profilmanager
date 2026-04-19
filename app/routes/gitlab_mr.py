@@ -100,15 +100,15 @@ def main_branch():
         service = _service()
         for project_id in _distinct_project_ids():
             branch = service.get_branch(project_id, "main")
-            merge_requests = service.list_merge_requests(
-                project_id, state="all", target_branch="main"
-            )
+            merge_requests = service.list_merge_requests(project_id, state="opened", target_branch="main")
+            tree_entries = service.list_repository_tree(project_id, ref="main", recursive=True)
             projects.append(
                 {
                     "project_id": project_id,
                     "branch": branch,
                     "can_admin_main": branch.get("can_push", False),
                     "merge_requests": merge_requests,
+                    "tree_entries": tree_entries,
                 }
             )
     except GitLabServiceError as exc:
@@ -117,6 +117,27 @@ def main_branch():
     return render_template(
         "gitlab/main_branch.html", projects=projects, error=error, form=form
     )
+
+
+@gitlab_bp.route("/main-branch/merge-request-archiv")
+@login_required
+def main_branch_mr_archive():
+    projects = []
+    error = None
+
+    try:
+        service = _service()
+        for project_id in _distinct_project_ids():
+            archive_requests = [
+                mr
+                for mr in service.list_merge_requests(project_id, state="all", target_branch="main")
+                if mr.get("state") != "opened"
+            ]
+            projects.append({"project_id": project_id, "merge_requests": archive_requests})
+    except GitLabServiceError as exc:
+        error = str(exc)
+
+    return render_template("gitlab/main_branch_mr_archive.html", projects=projects, error=error)
 
 
 @gitlab_bp.route("/<int:mr_id>", methods=["GET", "POST"])

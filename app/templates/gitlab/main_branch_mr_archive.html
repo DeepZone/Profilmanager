@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card mb-3">
+  <div class="card-header">
+    <h3 class="card-title">Main-Branch MR-Archiv</h3>
+  </div>
+  <div class="card-body">
+    <p class="mb-0">Hier findest du geschlossene und bereits gemergte Merge Requests auf <code>main</code>.</p>
+  </div>
+</div>
+
+{% if error %}
+  <div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+{% for project in projects %}
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title mb-0">Projekt {{ project.project_id }}</h3>
+  </div>
+  <div class="card-body table-responsive p-0">
+    <table class="table table-striped mb-0">
+      <thead>
+        <tr>
+          <th>MR</th>
+          <th>Titel</th>
+          <th>Status</th>
+          <th>Quelle</th>
+          <th>Erstellt</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for mr in project.merge_requests %}
+        <tr>
+          <td>!{{ mr.iid }}</td>
+          <td><a href="{{ mr.web_url }}" target="_blank" rel="noopener noreferrer">{{ mr.title }}</a></td>
+          <td>{{ mr.state }}</td>
+          <td>{{ mr.source_branch }} → {{ mr.target_branch }}</td>
+          <td>{{ mr.created_at }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="text-muted">Keine archivierten Merge Requests auf main gefunden.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="alert alert-info">Keine Projekte gefunden.</div>
+{% endfor %}
+{% endblock %}
