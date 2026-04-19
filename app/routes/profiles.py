@@ -265,6 +265,14 @@ def _delete_profile_files_from_git(profile: Profile) -> None:
             raise
 
 
+def _delete_local_profile_files(profile_files: list[ProfileFile]) -> None:
+    if not profile_files:
+        return
+
+    storage = StorageService(current_app.config["UPLOAD_FOLDER"])
+    storage.delete_files(profile_file.stored_path for profile_file in profile_files)
+
+
 @profiles_bp.route("/mine")
 @login_required
 def mine():
@@ -297,7 +305,21 @@ def all_profiles():
         query = query.filter_by(user_id=user_id)
 
     pagination = query.order_by(Profile.updated_at.desc()).paginate(page=page, per_page=15)
-    return render_template("profiles/all.html", pagination=pagination, q=q, user_id=user_id)
+    orphan_files = []
+    if current_user.is_admin:
+        orphan_files = (
+            ProfileFile.query.filter_by(profile_id=None)
+            .order_by(ProfileFile.uploaded_at.desc())
+            .all()
+        )
+
+    return render_template(
+        "profiles/all.html",
+        pagination=pagination,
+        q=q,
+        user_id=user_id,
+        orphan_files=orphan_files,
+    )
 
 
 @profiles_bp.route("/upload", methods=["GET", "POST"])
@@ -494,6 +516,8 @@ def delete(profile_id):
         )
         return redirect(url_for("profiles.detail", profile_id=profile.id))
 
+    profile_files = list(ProfileFile.query.filter_by(profile_id=profile.id).all())
+
     if delete_dependencies:
         GitLabMergeRequest.query.filter_by(profile_id=profile.id).delete(synchronize_session=False)
         ProfileFile.query.filter_by(profile_id=profile.id).delete(synchronize_session=False)
@@ -501,11 +525,10 @@ def delete(profile_id):
         GitLabMergeRequest.query.filter_by(profile_id=profile.id).update(
             {GitLabMergeRequest.profile_id: None}, synchronize_session=False
         )
-        ProfileFile.query.filter_by(profile_id=profile.id).update(
-            {ProfileFile.profile_id: None}, synchronize_session=False
-        )
+        ProfileFile.query.filter_by(profile_id=profile.id).delete(synchronize_session=False)
 
     try:
+        _delete_local_profile_files(profile_files)
         _delete_profile_files_from_git(profile)
     except (GitLabServiceError, ValueError) as exc:
         db.session.rollback()
@@ -536,6 +559,27 @@ def delete(profile_id):
 
     flash("Profil gelöscht.", "success")
     return redirect(url_for("profiles.mine"))
+
+
+@profiles_bp.route("/orphan-files/<int:file_id>/delete", methods=["POST"])
+@login_required
+def delete_orphan_file(file_id):
+    if not current_user.is_admin:
+        abort(403)
+
+    orphan_file = ProfileFile.query.filter_by(id=file_id, profile_id=None).first_or_404()
+    _delete_local_profile_files([orphan_file])
+    db.session.delete(orphan_file)
+    db.session.add(
+        AuditLog(
+            user_id=current_user.id,
+            action="orphan_file_delete",
+            details=f"Verwaiste Datei {orphan_file.id} gelöscht",
+        )
+    )
+    db.session.commit()
+    flash("Verwaiste Datei gelöscht.", "success")
+    return redirect(url_for("profiles.all_profiles"))
 
 
 @profiles_bp.route("/push", methods=["POST"])
