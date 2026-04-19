@@ -15,7 +15,7 @@ def index():
     if current_user.is_admin:
         profile_count = Profile.query.count()
         user_count = User.query.count()
-        mr_count = GitLabMergeRequest.query.count()
+        mr_count = GitLabMergeRequest.query.filter_by(status="opened").count()
         country_counts_query = (
             db.session.query(Profile.country_code, func.count(Profile.id))
             .group_by(Profile.country_code)
@@ -28,6 +28,7 @@ def index():
         mr_count = (
             GitLabMergeRequest.query.join(Profile)
             .filter(Profile.user_id == current_user.id)
+            .filter(GitLabMergeRequest.status == "opened")
             .count()
         )
         country_counts_query = (
