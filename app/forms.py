@@ -178,3 +178,10 @@ class MainBranchActionForm(FlaskForm):
     project_id = HiddenField(validators=[DataRequired()])
     mr_iid = HiddenField(validators=[DataRequired()])
     submit = SubmitField("Ausführen")
+
+
+class MainBranchDeletePathForm(FlaskForm):
+    project_id = HiddenField(validators=[DataRequired()])
+    path = HiddenField(validators=[DataRequired()])
+    entry_type = HiddenField(validators=[DataRequired()])
+    submit = SubmitField("Löschen")
