@@ -118,6 +118,10 @@ def main_branch():
     delete_form = MainBranchDeletePathForm(prefix="main_delete")
     action_labels = {"merge": "Merge", "close": "Schließen", "reopen": "Wiederöffnen"}
 
+    if request.method == "POST" and form.submit.data and not form.validate():
+        flash("Aktion konnte nicht ausgeführt werden. Bitte Formularangaben prüfen.", "danger")
+        return redirect(url_for("gitlab.main_branch"))
+
     if request.method == "POST" and form.submit.data and form.validate():
         action = form.action.data
         if action not in action_labels:
@@ -144,6 +148,10 @@ def main_branch():
         except GitLabServiceError as exc:
             flash(f"Aktion fehlgeschlagen: {exc}", "danger")
 
+        return redirect(url_for("gitlab.main_branch"))
+
+    if request.method == "POST" and delete_form.submit.data and not delete_form.validate():
+        flash("Löschen konnte nicht ausgeführt werden. Bitte Anfrage erneut senden.", "danger")
         return redirect(url_for("gitlab.main_branch"))
 
     if request.method == "POST" and delete_form.submit.data and delete_form.validate():
