@@ -23,8 +23,15 @@ class RepoStructureServiceTestCase(unittest.TestCase):
         paths = build_repo_paths("+41", "Provider/CH", "profile_v1.tar")
         self.assertEqual(paths["base"], "providers-041/Provider-CH")
         self.assertEqual(
-            paths["tar_path"],
+            paths["upload_path"],
             "providers-041/Provider-CH/providerprofile/profile_v1.tar",
+        )
+
+    def test_build_repo_paths_for_export_file(self):
+        paths = build_repo_paths("+41", "Provider/CH", "gui_v1.export")
+        self.assertEqual(
+            paths["upload_path"],
+            "providers-041/Provider-CH/gui_importe/gui_v1.export",
         )
 
 

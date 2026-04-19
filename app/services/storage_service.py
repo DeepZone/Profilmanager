@@ -11,12 +11,12 @@ class StorageService:
     def __init__(self, root_folder: str):
         self.root = Path(root_folder)
 
-    def save_profile_tar(self, profile_id: int, version: int, uploaded_file: FileStorage):
+    def save_profile_upload(self, profile_id: int, version: int, uploaded_file: FileStorage):
         safe_name = secure_filename(uploaded_file.filename or "profile.tar")
         profile_folder = self.root / str(profile_id)
         profile_folder.mkdir(parents=True, exist_ok=True)
 
-        extension = ".tar"
+        extension = Path(safe_name).suffix.lower() or ".tar"
         filename = f"v{version}_{uuid.uuid4().hex}{extension}"
         final_path = profile_folder / filename
 

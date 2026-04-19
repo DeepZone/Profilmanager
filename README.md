@@ -1,12 +1,12 @@
 # Profilmanager
 
-Profilmanager ist eine webbasierte Verwaltungsplattform für Providerprofile (`.tar`) mit Rollenmodell, Versionierung, relationaler Datenhaltung und GitLab-Merge-Request-Workflow.
+Profilmanager ist eine webbasierte Verwaltungsplattform für Providerprofile (`.tar`, `.export`) mit Rollenmodell, Versionierung, relationaler Datenhaltung und GitLab-Merge-Request-Workflow.
 
 ## Features
 
 - Session-Login mit rollenbasierter Zugriffskontrolle (`Admin`, `User`)
 - Benutzerverwaltung (anlegen, bearbeiten, deaktivieren, löschen)
-- Profil-Upload (`.tar`), Versionierung und Download
+- Profil-Upload (`.tar`, `.export`), Versionierung und Download
 - Trennung von Dateispeicher und Metadaten in PostgreSQL
 - Such-/Filter-Grundfunktionen für Profile
 - GitLab-Integration via API

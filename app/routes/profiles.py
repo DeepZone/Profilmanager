@@ -145,7 +145,7 @@ def _push_profile_file_to_gitlab(
             if "already exists" not in str(exc):
                 raise
 
-    repo_path = repo_paths["tar_path"]
+    repo_path = repo_paths["upload_path"]
     try:
         service.commit_file(resolved_project_id, branch_name, repo_path, encoded, commit_message)
     except GitLabServiceError:
@@ -172,7 +172,7 @@ def _delete_profile_files_from_git(profile: Profile) -> None:
             profile.dial_code,
             profile.provider or profile.name,
             profile_file.original_filename,
-        )["tar_path"]
+        )["upload_path"]
         for profile_file in files
     }
 
@@ -244,7 +244,7 @@ def upload():
         db.session.flush()
 
         storage = StorageService(current_app.config["UPLOAD_FOLDER"])
-        meta = storage.save_profile_tar(profile.id, 1, form.upload.data)
+        meta = storage.save_profile_upload(profile.id, 1, form.upload.data)
 
         profile_file = ProfileFile(profile=profile, version=1, **meta)
         db.session.add(profile_file)
@@ -372,7 +372,7 @@ def edit(profile_id):
         if form.upload.data:
             profile.current_version += 1
             storage = StorageService(current_app.config["UPLOAD_FOLDER"])
-            meta = storage.save_profile_tar(profile.id, profile.current_version, form.upload.data)
+            meta = storage.save_profile_upload(profile.id, profile.current_version, form.upload.data)
             db.session.add(ProfileFile(profile=profile, version=profile.current_version, **meta))
 
         db.session.add(

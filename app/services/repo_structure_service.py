@@ -30,14 +30,21 @@ def build_branch_name(user_shortcode: str, dial_code: str | None, provider_name:
     return f"{shortcode}_{prefix}_{provider}"
 
 
-def build_repo_paths(dial_code: str | None, provider_name: str, tar_filename: str) -> dict[str, str]:
+def build_repo_paths(dial_code: str | None, provider_name: str, filename: str) -> dict[str, str]:
     prefix = normalize_dial_code(dial_code)
     provider_segment = sanitize_path_segment(provider_name, fallback="provider")
     base = f"providers-{prefix}/{provider_segment}"
+    sanitized_filename = sanitize_path_segment(filename, fallback="profile.tar")
+    is_export_file = sanitized_filename.lower().endswith(".export")
+    upload_path = (
+        f"{base}/gui_importe/{sanitized_filename}"
+        if is_export_file
+        else f"{base}/providerprofile/{sanitized_filename}"
+    )
     return {
         "base": base,
         "gui_importe": f"{base}/gui_importe",
         "providerprofile": f"{base}/providerprofile",
         "tr069_nachlader": f"{base}/tr069_nachlader",
-        "tar_path": f"{base}/providerprofile/{sanitize_path_segment(tar_filename, fallback='profile.tar')}",
+        "upload_path": upload_path,
     }

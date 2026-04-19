@@ -101,8 +101,8 @@ class ProfileForm(FlaskForm):
     description = TextAreaField("Beschreibung", validators=[Optional()])
     comment = TextAreaField("Kommentar", validators=[Optional()])
     upload = FileField(
-        "Profildatei (.tar)",
-        validators=[FileRequired(), FileAllowed(["tar"], "Nur .tar-Dateien erlaubt")],
+        "Profildatei (.tar, .export)",
+        validators=[FileRequired(), FileAllowed(["tar", "export"], "Nur .tar- oder .export-Dateien erlaubt")],
     )
     create_mr = BooleanField("Nach Upload direkt Merge Request erstellen", default=False)
     submit = SubmitField("Hochladen")
@@ -118,8 +118,11 @@ class ProfileEditForm(FlaskForm):
     description = TextAreaField("Beschreibung", validators=[Optional()])
     comment = TextAreaField("Kommentar", validators=[Optional()])
     upload = FileField(
-        "Neue Version (.tar)",
-        validators=[Optional(), FileAllowed(["tar"], "Nur .tar-Dateien erlaubt")],
+        "Neue Version (.tar, .export)",
+        validators=[
+            Optional(),
+            FileAllowed(["tar", "export"], "Nur .tar- oder .export-Dateien erlaubt"),
+        ],
     )
     submit = SubmitField("Aktualisieren")
 
