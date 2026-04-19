@@ -126,6 +126,15 @@ def delete(user_id):
     db.session.add(
         AuditLog(user_id=current_user.id, action="user_delete", details=f"User {user.username}")
     )
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        flash(
+            "Benutzer kann nicht gelöscht werden, da noch abhängige Daten vorhanden sind.",
+            "danger",
+        )
+        return redirect(url_for("users.index"))
+
     flash("Benutzer gelöscht.", "success")
     return redirect(url_for("users.index"))
