@@ -61,7 +61,7 @@ class VersionService:
         changed = False
         defaults = {
             cls.VERSION_MAJOR_KEY: 1,
-            cls.VERSION_MINOR_KEY: 0,
+            cls.VERSION_MINOR_KEY: 1,
             cls.VERSION_BUILD_KEY: 0,
         }
         for key, default_value in defaults.items():
