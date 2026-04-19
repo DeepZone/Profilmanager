@@ -19,7 +19,7 @@
 
   <aside class="main-sidebar sidebar-dark-primary elevation-4">
     <a href="{{ url_for('dashboard.index') }}" class="brand-link"><span class="brand-text font-weight-light">Profilmanager</span></a>
-    <div class="sidebar">
+    <div class="sidebar d-flex flex-column h-100">
       <nav class="mt-2">
         <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
           <li class="nav-item"><a href="{{ url_for('dashboard.index') }}" class="nav-link">Dashboard</a></li>
@@ -33,6 +33,9 @@
           {% endif %}
         </ul>
       </nav>
+      <div class="sidebar-version text-muted small mt-auto pb-3 px-3">
+        Profilmanager v{{ app_version }}
+      </div>
     </div>
   </aside>
   {% endif %}

@@ -115,6 +115,19 @@ Standard-Admin-Credentials kommen aus `.env` (`DEFAULT_ADMIN_*`).
 - Bei identischem Dateipfad wird von `create file` auf `update file` fallbackt.
 - Für produktive Sicherheit sollte das Secret Management (z. B. Vault/KMS) erweitert werden.
 
+## Globale Anwendungsversionierung
+
+Der Profilmanager führt eine globale App-Version im Format `MAJOR.MINOR.BUILD`, die serverseitig in der Datenbank (`settings`) verwaltet wird.
+
+- **Format**: `MAJOR.MINOR.BUILD` (z. B. `1.0.17`)
+- **Anzeige im UI**: in der Sidebar ganz unten als `Profilmanager v<version>`
+- **Automatischer Build-Increment**: `BUILD` wird genau dann um `1` erhöht, wenn ein Merge Request in der Weboberfläche erfolgreich gemergt wurde
+- **Kein Increment** bei MR-Erstellung, Push oder fehlgeschlagenem Merge
+- **Admin-Verwaltung**: `MAJOR` und `MINOR` sind in den Einstellungen administrativ setzbar
+  - Beim Setzen von `MINOR` wird `BUILD` auf `0` zurückgesetzt
+  - Beim Setzen von `MAJOR` werden `MINOR` und `BUILD` auf `0` zurückgesetzt
+- **Nachvollziehbarkeit**: Jede Versionsänderung wird über das Audit-Log als `version_changed` erfasst
+
 ## Migrationen lokal (ohne Docker)
 
 ```bash
