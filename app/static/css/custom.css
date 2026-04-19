@@ -1,0 +1,8 @@
+.diff-box {
+  background: #111;
+  color: #c5f8c5;
+  max-height: 350px;
+  overflow: auto;
+  font-size: 0.8rem;
+  padding: 0.75rem;
+}

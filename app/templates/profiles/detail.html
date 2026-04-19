@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row">
+<div class="col-md-7">
+  <div class="card">
+    <div class="card-header"><h3 class="card-title">Profil: {{ profile.name }}</h3></div>
+    <div class="card-body">
+      <p><b>Beschreibung:</b> {{ profile.description }}</p>
+      <p><b>Kommentar:</b> {{ profile.comment }}</p>
+      <p><b>Aktuelle Version:</b> {{ profile.current_version }}</p>
+      <a class="btn btn-secondary" href="{{ url_for('profiles.edit', profile_id=profile.id) }}">Bearbeiten</a>
+      <hr>
+      <h5>Dateiversionen</h5>
+      <ul>
+        {% for f in profile.files|sort(attribute='version', reverse=True) %}
+          <li>v{{ f.version }} - {{ f.original_filename }} - <a href="{{ url_for('profiles.download', profile_id=profile.id, file_id=f.id) }}">Download</a></li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+<div class="col-md-5">
+  <div class="card card-info">
+    <div class="card-header"><h3 class="card-title">Zu GitLab pushen</h3></div>
+    <form method="post" action="{{ url_for('profiles.push_to_gitlab') }}">
+      <div class="card-body">
+        {{ push_form.hidden_tag() }}
+        {{ push_form.profile_file_id() }}
+        <div class="form-group">{{ push_form.project_id.label }} {{ push_form.project_id(class='form-control') }}</div>
+        <div class="form-group">{{ push_form.branch_name.label }} {{ push_form.branch_name(class='form-control') }}</div>
+        <div class="form-group">{{ push_form.target_branch.label }} {{ push_form.target_branch(class='form-control') }}</div>
+        <div class="form-group">{{ push_form.commit_message.label }} {{ push_form.commit_message(class='form-control') }}</div>
+        <div class="form-group">{{ push_form.mr_title.label }} {{ push_form.mr_title(class='form-control') }}</div>
+      </div>
+      <div class="card-footer">{{ push_form.submit(class='btn btn-info') }}</div>
+    </form>
+  </div>
+</div>
+</div>
+{% endblock %}

@@ -1,0 +1,36 @@
+import hashlib
+import os
+import uuid
+from pathlib import Path
+
+from werkzeug.datastructures import FileStorage
+from werkzeug.utils import secure_filename
+
+
+class StorageService:
+    def __init__(self, root_folder: str):
+        self.root = Path(root_folder)
+
+    def save_profile_tar(self, profile_id: int, version: int, uploaded_file: FileStorage):
+        safe_name = secure_filename(uploaded_file.filename or "profile.tar")
+        profile_folder = self.root / str(profile_id)
+        profile_folder.mkdir(parents=True, exist_ok=True)
+
+        extension = ".tar"
+        filename = f"v{version}_{uuid.uuid4().hex}{extension}"
+        final_path = profile_folder / filename
+
+        uploaded_file.save(final_path)
+
+        hasher = hashlib.sha256()
+        with open(final_path, "rb") as f:
+            for chunk in iter(lambda: f.read(8192), b""):
+                hasher.update(chunk)
+
+        return {
+            "original_filename": safe_name,
+            "stored_path": str(final_path),
+            "file_size": os.path.getsize(final_path),
+            "sha256": hasher.hexdigest(),
+            "mime_type": uploaded_file.mimetype,
+        }

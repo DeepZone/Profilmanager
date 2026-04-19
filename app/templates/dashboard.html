@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row">
+  <div class="col-md-4"><div class="small-box bg-info"><div class="inner"><h3>{{ profile_count }}</h3><p>Profile</p></div></div></div>
+  <div class="col-md-4"><div class="small-box bg-success"><div class="inner"><h3>{{ mr_count }}</h3><p>Merge Requests</p></div></div></div>
+  {% if user_count is not none %}
+  <div class="col-md-4"><div class="small-box bg-warning"><div class="inner"><h3>{{ user_count }}</h3><p>Benutzer</p></div></div></div>
+  {% endif %}
+</div>
+{% endblock %}
