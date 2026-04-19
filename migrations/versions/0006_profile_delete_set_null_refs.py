@@ -1,6 +1,6 @@
 """allow profile deletion by nulling dependent references
 
-Revision ID: 0006_profile_delete_set_null_refs
+Revision ID: 0006_profile_delete_set_null_ref
 Revises: 0005_user_delete_set_null_refs
 Create Date: 2026-04-19
 """
@@ -9,7 +9,7 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision = "0006_profile_delete_set_null_refs"
+revision = "0006_profile_delete_set_null_ref"
 down_revision = "0005_user_delete_set_null_refs"
 branch_labels = None
 depends_on = None
