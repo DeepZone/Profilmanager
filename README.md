@@ -5,6 +5,7 @@ Profilmanager ist eine webbasierte Verwaltungsplattform für Providerprofile (`.
 ## Features
 
 - Session-Login mit rollenbasierter Zugriffskontrolle (`Admin`, `User`)
+- Kennwort-vergessen-Flow mit signiertem, zeitlich begrenztem Reset-Link per E-Mail
 - Benutzerverwaltung (anlegen, bearbeiten, deaktivieren, löschen)
 - Profil-Upload (`.tar`, `.export`), Versionierung und Download
 - Trennung von Dateispeicher und Metadaten in PostgreSQL
@@ -62,6 +63,8 @@ cp .env.example .env
 - `DATABASE_URL`
 - `DEFAULT_ADMIN_*`
 - `UPLOAD_FOLDER`
+- `APP_BASE_URL`
+- `MAIL_*` (SMTP-Server für Kennwort-Reset-Mails)
 
 ## Start mit Docker Compose
 
@@ -154,3 +157,26 @@ flask --app manage.py db upgrade
 flask --app manage.py seed-admin
 python run.py
 ```
+
+## Kennwort vergessen einrichten
+
+Für die Funktion `Passwort vergessen` müssen SMTP-Parameter gesetzt sein (z. B. MailHog lokal).
+
+Beispiel lokal mit MailHog:
+
+```bash
+docker run --rm -p 1025:1025 -p 8025:8025 mailhog/mailhog
+```
+
+Dann in `.env`:
+
+```bash
+MAIL_ENABLED=true
+MAIL_SERVER=localhost
+MAIL_PORT=1025
+MAIL_USE_TLS=false
+MAIL_DEFAULT_SENDER=noreply@profilmanager.local
+APP_BASE_URL=http://localhost:5000
+```
+
+Standard-Gültigkeit des Reset-Links: `RESET_PASSWORD_TOKEN_MAX_AGE=3600` (Sekunden).
