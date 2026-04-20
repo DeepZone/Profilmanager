@@ -43,6 +43,7 @@
 
           {% if current_user.is_admin %}
           <li class="nav-header">ADMINISTRATION</li>
+          <li class="nav-item"><a href="{{ url_for('settings.index') }}" class="nav-link">Einstellungen</a></li>
           <li class="nav-item"><a href="{{ url_for('users.index') }}" class="nav-link">Benutzerverwaltung</a></li>
           <li class="nav-item"><a href="{{ url_for('settings.gitlab') }}" class="nav-link">GitLab-Konfiguration</a></li>
           {% endif %}

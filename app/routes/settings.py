@@ -1,13 +1,41 @@
-from flask import Blueprint, flash, redirect, render_template, url_for
+from flask import Blueprint, current_app, flash, redirect, render_template, url_for
 from flask_login import current_user, login_required
 
 from app.decorators import admin_required
 from app.extensions import db
-from app.forms import GitLabConfigForm
+from app.forms import GeneralSettingsForm, GitLabConfigForm
 from app.models import AuditLog, Setting
 from app.services.gitlab_service import GitLabService, GitLabServiceError
 
 settings_bp = Blueprint("settings", __name__, url_prefix="/settings")
+
+
+@settings_bp.route("", methods=["GET", "POST"])
+@login_required
+@admin_required
+def index():
+    form = GeneralSettingsForm()
+    current_sender = Setting.query.filter_by(key="mail_default_sender").first()
+
+    if form.validate_on_submit():
+        _save_setting("mail_default_sender", form.mail_default_sender.data.strip())
+        db.session.add(
+            AuditLog(
+                user_id=current_user.id,
+                action="settings_update",
+                details="Allgemeine Einstellungen geändert",
+            )
+        )
+        db.session.commit()
+        flash("Einstellungen gespeichert.", "success")
+        return redirect(url_for("settings.index"))
+
+    if current_sender and current_sender.value:
+        form.mail_default_sender.data = current_sender.value
+    else:
+        form.mail_default_sender.data = current_app.config["MAIL_DEFAULT_SENDER"]
+
+    return render_template("settings/index.html", form=form)
 
 
 @settings_bp.route("/gitlab", methods=["GET", "POST"])

@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row">
+  <div class="col-md-8">
+    <div class="card card-info">
+      <div class="card-header"><h3 class="card-title">Einstellungen</h3></div>
+      <form method="post">
+        <div class="card-body">
+          {{ form.hidden_tag() }}
+          <div class="form-group">
+            {{ form.mail_default_sender.label }}
+            {{ form.mail_default_sender(class='form-control', placeholder='noreply@profilmanager.local') }}
+            <small class="form-text text-muted">Diese Adresse wird als Absender für System-E-Mails verwendet (z. B. Passwort-Reset).</small>
+          </div>
+        </div>
+        <div class="card-footer">{{ form.submit(class='btn btn-info') }}</div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

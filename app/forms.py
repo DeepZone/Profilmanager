@@ -180,6 +180,14 @@ class GitLabConfigForm(FlaskForm):
     submit = SubmitField("Konfiguration speichern")
 
 
+class GeneralSettingsForm(FlaskForm):
+    mail_default_sender = StringField(
+        "Standard-Absender E-Mail",
+        validators=[DataRequired(), Email(), Length(max=255)],
+    )
+    submit = SubmitField("Einstellungen speichern")
+
+
 class PushToGitLabForm(FlaskForm):
     profile_file_id = HiddenField(validators=[DataRequired()])
     branch_name = StringField("Branch Name", validators=[DataRequired(), Length(max=255)])
