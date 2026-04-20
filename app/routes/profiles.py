@@ -31,10 +31,12 @@ def _can_access_profile(profile):
 
 def _get_gitlab_service_or_raise():
     url = Setting.query.filter_by(key="gitlab_url").first()
-    token = Setting.query.filter_by(key="gitlab_token").first()
-    if not url or not url.value or not token or not token.value:
-        raise GitLabServiceError("GitLab ist nicht vollständig konfiguriert.")
-    return GitLabService(url.value, token.value)
+    token = (current_user.gitlab_token or "").strip()
+    if not url or not url.value or not token:
+        raise GitLabServiceError(
+            "GitLab ist nicht vollständig konfiguriert. Bitte GitLab URL und persönlichen API Token prüfen."
+        )
+    return GitLabService(url.value, token)
 
 
 def _get_profile_dependency_counts(profile_id: int) -> dict[str, int]:

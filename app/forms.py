@@ -67,15 +67,12 @@ class SelfProfileForm(FlaskForm):
     username = StringField("Benutzername", validators=[DataRequired(), Length(max=80)])
     email = StringField("E-Mail", validators=[DataRequired(), Email(), Length(max=120)])
     shortcode = StringField("Persönliches Benutzerkürzel")
-    current_password = PasswordField(
-        "Aktuelles Passwort", validators=[DataRequired(), Length(min=8, max=128)]
-    )
-    new_password = PasswordField(
-        "Neues Passwort", validators=[DataRequired(), Length(min=8, max=128)]
-    )
+    gitlab_token = PasswordField("GitLab API Token", validators=[Optional(), Length(max=255)])
+    current_password = PasswordField("Aktuelles Passwort", validators=[Optional(), Length(min=8, max=128)])
+    new_password = PasswordField("Neues Passwort", validators=[Optional(), Length(min=8, max=128)])
     confirm_new_password = PasswordField(
         "Neues Passwort bestätigen",
-        validators=[DataRequired(), EqualTo("new_password", message="Passwörter stimmen nicht überein")],
+        validators=[Optional(), EqualTo("new_password", message="Passwörter stimmen nicht überein")],
     )
     submit = SubmitField("Speichern")
 
@@ -88,6 +85,30 @@ class SelfProfileForm(FlaskForm):
 
         if normalized_shortcode and (len(normalized_shortcode) != 3 or not normalized_shortcode.isalpha()):
             raise ValidationError("Kürzel muss aus genau 3 Buchstaben (A-Z) bestehen")
+
+    def validate(self, extra_validators=None):
+        if not super().validate(extra_validators=extra_validators):
+            return False
+
+        password_fields = [
+            self.current_password.data,
+            self.new_password.data,
+            self.confirm_new_password.data,
+        ]
+        password_change_requested = any(bool((value or "").strip()) for value in password_fields)
+
+        if password_change_requested:
+            if not (self.current_password.data or "").strip():
+                self.current_password.errors.append("Bitte aktuelles Passwort eingeben.")
+                return False
+            if not (self.new_password.data or "").strip():
+                self.new_password.errors.append("Bitte neues Passwort eingeben.")
+                return False
+            if not (self.confirm_new_password.data or "").strip():
+                self.confirm_new_password.errors.append("Bitte Passwort-Bestätigung eingeben.")
+                return False
+
+        return True
 
 
 class ProfileForm(FlaskForm):
@@ -137,7 +158,6 @@ class ProfileEditForm(FlaskForm):
 
 class GitLabConfigForm(FlaskForm):
     gitlab_url = StringField("GitLab URL", validators=[DataRequired(), Length(max=255)])
-    gitlab_token = PasswordField("API Token", validators=[Optional(), Length(max=255)])
     gitlab_project_id = StringField(
         "Standard Projekt-ID", validators=[Optional(), Length(max=50)]
     )

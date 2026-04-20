@@ -32,20 +32,56 @@ def index():
 def me():
     form = SelfProfileForm(obj=current_user)
     if form.validate_on_submit():
-        if not current_user.check_password(form.current_password.data):
-            flash("Aktuelles Passwort ist nicht korrekt.", "danger")
-            return render_template("users/me.html", form=form)
+        password_change_requested = any(
+            bool((value or "").strip())
+            for value in [
+                form.current_password.data,
+                form.new_password.data,
+                form.confirm_new_password.data,
+            ]
+        )
+        submitted_token = (form.gitlab_token.data or "").strip()
+        token_changed = bool(submitted_token) and submitted_token != (current_user.gitlab_token or "")
+        if submitted_token:
+            current_user.gitlab_token = submitted_token
 
-        current_user.set_password(form.new_password.data)
-        db.session.add(
-            AuditLog(
-                user_id=current_user.id,
-                action="user_password_change",
-                details=f"User {current_user.username} changed own password",
+        if password_change_requested:
+            if not current_user.check_password(form.current_password.data):
+                flash("Aktuelles Passwort ist nicht korrekt.", "danger")
+                return render_template("users/me.html", form=form)
+
+            current_user.set_password(form.new_password.data)
+            db.session.add(
+                AuditLog(
+                    user_id=current_user.id,
+                    action="user_password_change",
+                    details=f"User {current_user.username} changed own password",
+                )
             )
+
+        if token_changed:
+            db.session.add(
+                AuditLog(
+                    user_id=current_user.id,
+                    action="user_gitlab_token_change",
+                    details=f"User {current_user.username} changed own GitLab token",
+                )
+            )
+
+        if not password_change_requested and not token_changed:
+            flash("Keine Änderungen erkannt.", "info")
+            return redirect(url_for("users.me"))
+
+        db.session.add(
+            AuditLog(user_id=current_user.id, action="user_profile_edit", details="Own profile updated")
         )
         db.session.commit()
-        flash("Passwort erfolgreich geändert.", "success")
+        if password_change_requested and token_changed:
+            flash("Passwort und GitLab API Token erfolgreich gespeichert.", "success")
+        elif password_change_requested:
+            flash("Passwort erfolgreich geändert.", "success")
+        else:
+            flash("GitLab API Token erfolgreich gespeichert.", "success")
         return redirect(url_for("users.me"))
 
     return render_template("users/me.html", form=form)

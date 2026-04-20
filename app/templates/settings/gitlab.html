@@ -8,9 +8,8 @@
         <div class="card-body">
           {{ form.hidden_tag() }}
           <div class="form-group">{{ form.gitlab_url.label }} {{ form.gitlab_url(class='form-control') }}</div>
-          <div class="form-group">{{ form.gitlab_token.label }} {{ form.gitlab_token(class='form-control', placeholder='Neuen Token eingeben (optional)') }}</div>
           <div class="form-group">{{ form.gitlab_project_id.label }} {{ form.gitlab_project_id(class='form-control') }}</div>
-          <p>Token gesetzt: <b>{{ 'Ja' if token_set else 'Nein' }}</b></p>
+          <p class="text-muted mb-0">Der API Token wird pro Benutzer im Benutzerprofil gepflegt.</p>
         </div>
         <div class="card-footer">{{ form.submit(class='btn btn-info') }}</div>
       </form>

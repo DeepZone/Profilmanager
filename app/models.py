@@ -24,6 +24,7 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     shortcode = db.Column(db.String(3), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
+    gitlab_token = db.Column(db.String(255))
     active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(

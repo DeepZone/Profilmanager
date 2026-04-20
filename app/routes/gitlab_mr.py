@@ -28,10 +28,12 @@ def _merge_was_successful(merge_response: dict) -> bool:
 
 def _service():
     url = Setting.query.filter_by(key="gitlab_url").first()
-    token = Setting.query.filter_by(key="gitlab_token").first()
-    if not url or not token or not url.value or not token.value:
-        raise GitLabServiceError("GitLab Konfiguration fehlt")
-    return GitLabService(url.value, token.value)
+    token = (current_user.gitlab_token or "").strip()
+    if not url or not url.value or not token:
+        raise GitLabServiceError(
+            "GitLab Konfiguration fehlt. Bitte GitLab URL und persönlichen API Token prüfen."
+        )
+    return GitLabService(url.value, token)
 
 
 @gitlab_bp.route("/")
