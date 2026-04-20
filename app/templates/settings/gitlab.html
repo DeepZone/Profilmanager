@@ -24,25 +24,6 @@
         </form>
       </div>
     </div>
-
-    <div class="card card-secondary">
-      <div class="card-header"><h3 class="card-title">Anwendungsversion</h3></div>
-      <div class="card-body">
-        <p class="mb-3">Aktuelle Version: <strong>{{ current_version }}</strong></p>
-
-        <form method="post" action="{{ url_for('settings.set_major_version') }}" class="mb-3">
-          {{ major_form.hidden_tag() }}
-          <div class="form-group mb-2">{{ major_form.major.label }} {{ major_form.major(class='form-control', min='0') }}</div>
-          {{ major_form.submit_major(class='btn btn-outline-primary btn-sm btn-block') }}
-        </form>
-
-        <form method="post" action="{{ url_for('settings.set_minor_version') }}">
-          {{ minor_form.hidden_tag() }}
-          <div class="form-group mb-2">{{ minor_form.minor.label }} {{ minor_form.minor(class='form-control', min='0') }}</div>
-          {{ minor_form.submit_minor(class='btn btn-outline-primary btn-sm btn-block') }}
-        </form>
-      </div>
-    </div>
   </div>
 </div>
 {% endblock %}

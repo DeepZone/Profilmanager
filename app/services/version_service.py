@@ -60,9 +60,9 @@ class VersionService:
     def initialize_version_if_missing(cls) -> AppVersion:
         changed = False
         defaults = {
-            cls.VERSION_MAJOR_KEY: 1,
-            cls.VERSION_MINOR_KEY: 1,
-            cls.VERSION_BUILD_KEY: 0,
+            cls.VERSION_MAJOR_KEY: 0,
+            cls.VERSION_MINOR_KEY: 2,
+            cls.VERSION_BUILD_KEY: 7683,
         }
         for key, default_value in defaults.items():
             if cls._get_setting(key) is None:
@@ -149,30 +149,5 @@ class VersionService:
 
         cls._upsert_setting(cls.VERSION_BUILD_KEY, new_version.build)
         cls._audit_version_change(version, new_version, user_id=user_id, reason=reason)
-        db.session.commit()
-        return new_version
-
-    @classmethod
-    def set_minor(cls, new_minor: int, user_id: int | None = None) -> AppVersion:
-        validated_minor = cls._validate_non_negative_int(new_minor, "minor")
-        version = cls.get_version()
-        new_version = AppVersion(major=version.major, minor=validated_minor, build=0)
-
-        cls._upsert_setting(cls.VERSION_MINOR_KEY, new_version.minor)
-        cls._upsert_setting(cls.VERSION_BUILD_KEY, new_version.build)
-        cls._audit_version_change(version, new_version, user_id=user_id, reason="admin_set_minor")
-        db.session.commit()
-        return new_version
-
-    @classmethod
-    def set_major(cls, new_major: int, user_id: int | None = None) -> AppVersion:
-        validated_major = cls._validate_non_negative_int(new_major, "major")
-        version = cls.get_version()
-        new_version = AppVersion(major=validated_major, minor=0, build=0)
-
-        cls._upsert_setting(cls.VERSION_MAJOR_KEY, new_version.major)
-        cls._upsert_setting(cls.VERSION_MINOR_KEY, new_version.minor)
-        cls._upsert_setting(cls.VERSION_BUILD_KEY, new_version.build)
-        cls._audit_version_change(version, new_version, user_id=user_id, reason="admin_set_major")
         db.session.commit()
         return new_version
