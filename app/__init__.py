@@ -49,7 +49,7 @@ def create_app():
         try:
             app_version = VersionService.get_version_string()
         except VersionServiceError:
-            app_version = "1.1.0"
+            app_version = "0.2.7683"
         return {"app_version": app_version}
 
     from app.routes.auth import auth_bp

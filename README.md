@@ -137,13 +137,11 @@ Die Landesvorwahl wird über eine vollständige europäische Länderliste bereit
 
 Der Profilmanager führt eine globale App-Version im Format `MAJOR.MINOR.BUILD`, die serverseitig in der Datenbank (`settings`) verwaltet wird.
 
-- **Format**: `MAJOR.MINOR.BUILD` (z. B. `1.0.17`)
+- **Format**: `MAJOR.MINOR.BUILD` (Standard: `0.2.7683`)
 - **Anzeige im UI**: in der Sidebar ganz unten als `Profilmanager v<version>`
-- **Automatischer Build-Increment**: `BUILD` wird genau dann um `1` erhöht, wenn ein Merge Request in der Weboberfläche erfolgreich gemergt wurde
-- **Kein Increment** bei MR-Erstellung, Push oder fehlgeschlagenem Merge
-- **Admin-Verwaltung**: `MAJOR` und `MINOR` sind in den Einstellungen administrativ setzbar
-  - Beim Setzen von `MINOR` wird `BUILD` auf `0` zurückgesetzt
-  - Beim Setzen von `MAJOR` werden `MINOR` und `BUILD` auf `0` zurückgesetzt
+- **Automatischer Build-Increment bei Codeänderungen**: Beim Start der Anwendung wird die aktuelle Git-Revision geprüft; bei neuer Revision wird `BUILD` genau einmal um `1` erhöht
+- **MR-Merge-Increment**: Ein erfolgreicher Merge in der Weboberfläche erhöht `BUILD` ebenfalls um `1`
+- **Kein manuelles Version-Setting** über die GitLab-Konfiguration
 - **Nachvollziehbarkeit**: Jede Versionsänderung wird über das Audit-Log als `version_changed` erfasst
 
 ## Migrationen lokal (ohne Docker)

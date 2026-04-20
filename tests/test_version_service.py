@@ -50,48 +50,33 @@ class VersionServiceTestCase(unittest.TestCase):
         db.drop_all()
         self.ctx.pop()
 
-    def test_initialize_defaults_to_1_1_0(self):
+    def test_initialize_defaults_to_0_2_7683(self):
         version = VersionService.initialize_version_if_missing()
-        self.assertEqual(version.as_string(), "1.1.0")
+        self.assertEqual(version.as_string(), "0.2.7683")
 
 
     def test_bump_build_for_new_release_id(self):
         VersionService.initialize_version_if_missing()
 
         new_version = VersionService.bump_build_for_release("release-a")
-        self.assertEqual(new_version.as_string(), "1.1.1")
+        self.assertEqual(new_version.as_string(), "0.2.7684")
 
         same_version = VersionService.bump_build_for_release("release-a")
-        self.assertEqual(same_version.as_string(), "1.1.1")
+        self.assertEqual(same_version.as_string(), "0.2.7684")
 
         next_version = VersionService.bump_build_for_release("release-b")
-        self.assertEqual(next_version.as_string(), "1.1.2")
+        self.assertEqual(next_version.as_string(), "0.2.7685")
 
     def test_bump_build_without_release_id_keeps_version(self):
         VersionService.initialize_version_if_missing()
 
         version = VersionService.bump_build_for_release(None)
-        self.assertEqual(version.as_string(), "1.1.0")
+        self.assertEqual(version.as_string(), "0.2.7683")
 
     def test_increment_build(self):
         VersionService.initialize_version_if_missing()
         new_version = VersionService.increment_build(user_id=self.admin.id, reason="test")
-        self.assertEqual(new_version.as_string(), "1.1.1")
-
-    def test_set_minor_resets_build(self):
-        VersionService.initialize_version_if_missing()
-        VersionService.increment_build(user_id=self.admin.id, reason="test")
-
-        new_version = VersionService.set_minor(3, user_id=self.admin.id)
-        self.assertEqual(new_version.as_string(), "1.3.0")
-
-    def test_set_major_resets_minor_and_build(self):
-        VersionService.initialize_version_if_missing()
-        VersionService.set_minor(4, user_id=self.admin.id)
-        VersionService.increment_build(user_id=self.admin.id, reason="test")
-
-        new_version = VersionService.set_major(2, user_id=self.admin.id)
-        self.assertEqual(new_version.as_string(), "2.0.0")
+        self.assertEqual(new_version.as_string(), "0.2.7684")
 
     def test_failed_merge_does_not_increment_build(self):
         VersionService.initialize_version_if_missing()
@@ -123,7 +108,7 @@ class VersionServiceTestCase(unittest.TestCase):
         db.session.commit()
 
         VersionService.increment_build(user_id=self.admin.id, reason=f"merge_request_{mr.gitlab_mr_iid}")
-        self.assertEqual(VersionService.get_version_string(), "1.1.1")
+        self.assertEqual(VersionService.get_version_string(), "0.2.7684")
 
 
 if __name__ == "__main__":

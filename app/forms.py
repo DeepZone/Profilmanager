@@ -4,7 +4,6 @@ from flask_wtf.file import FileField, MultipleFileField
 from wtforms import (
     BooleanField,
     HiddenField,
-    IntegerField,
     PasswordField,
     SelectField,
     StringField,
@@ -16,7 +15,6 @@ from wtforms.validators import (
     Email,
     EqualTo,
     Length,
-    NumberRange,
     Optional,
     Regexp,
     ValidationError,
@@ -162,16 +160,6 @@ class GitLabConfigForm(FlaskForm):
         "Standard Projekt-ID", validators=[Optional(), Length(max=50)]
     )
     submit = SubmitField("Konfiguration speichern")
-
-
-class AppVersionMajorForm(FlaskForm):
-    major = IntegerField("Hauptversion (MAJOR)", validators=[DataRequired(), NumberRange(min=0)])
-    submit_major = SubmitField("Hauptversion setzen")
-
-
-class AppVersionMinorForm(FlaskForm):
-    minor = IntegerField("Subversion (MINOR)", validators=[DataRequired(), NumberRange(min=0)])
-    submit_minor = SubmitField("Subversion setzen")
 
 
 class PushToGitLabForm(FlaskForm):
