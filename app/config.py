@@ -22,4 +22,4 @@ class Config:
     MAIL_PASSWORD = os.getenv("MAIL_PASSWORD")
     MAIL_USE_TLS = os.getenv("MAIL_USE_TLS", "true").lower() == "true"
     MAIL_USE_SSL = os.getenv("MAIL_USE_SSL", "false").lower() == "true"
-    MAIL_DEFAULT_SENDER = os.getenv("MAIL_DEFAULT_SENDER", "noreply@profilmanager.local")
+    MAIL_DEFAULT_SENDER = os.getenv("MAIL_DEFAULT_SENDER", "norepley@profilmanager.fritz")
