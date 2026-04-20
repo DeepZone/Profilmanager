@@ -181,10 +181,32 @@ class GitLabConfigForm(FlaskForm):
 
 
 class GeneralSettingsForm(FlaskForm):
+    app_base_url = StringField(
+        "Öffentliche Server-URL",
+        validators=[DataRequired(), Length(max=255)],
+    )
     mail_default_sender = StringField(
         "Standard-Absender E-Mail",
         validators=[DataRequired(), Email(), Length(max=255)],
     )
+    mail_server = StringField(
+        "SMTP-Server",
+        validators=[DataRequired(), Length(max=255)],
+    )
+    mail_port = StringField(
+        "SMTP-Port",
+        validators=[DataRequired(), Length(max=10), Regexp(r"^\d+$", message="Bitte eine Zahl eingeben")],
+    )
+    mail_username = StringField(
+        "SMTP-Benutzername",
+        validators=[Optional(), Length(max=255)],
+    )
+    mail_password = PasswordField(
+        "SMTP-Passwort",
+        validators=[Optional(), Length(max=255)],
+    )
+    mail_use_tls = BooleanField("STARTTLS verwenden", default=True)
+    mail_use_ssl = BooleanField("SMTP über SSL verwenden", default=False)
     submit = SubmitField("Einstellungen speichern")
 
 

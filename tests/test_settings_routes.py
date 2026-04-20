@@ -69,14 +69,31 @@ class SettingsRoutesTestCase(unittest.TestCase):
 
         response = self.client.post(
             "/settings",
-            data={"mail_default_sender": "ops@example.com"},
+            data={
+                "app_base_url": "https://profilmanager.example.com",
+                "mail_default_sender": "ops@example.com",
+                "mail_server": "smtp.example.com",
+                "mail_port": "587",
+                "mail_username": "mailer-user",
+                "mail_password": "mailer-password",
+                "mail_use_tls": "y",
+            },
             follow_redirects=True,
         )
 
         self.assertEqual(200, response.status_code)
         sender_setting = Setting.query.filter_by(key="mail_default_sender").first()
+        app_base_url_setting = Setting.query.filter_by(key="app_base_url").first()
+        mail_server_setting = Setting.query.filter_by(key="mail_server").first()
+        mail_port_setting = Setting.query.filter_by(key="mail_port").first()
         self.assertIsNotNone(sender_setting)
+        self.assertIsNotNone(app_base_url_setting)
+        self.assertIsNotNone(mail_server_setting)
+        self.assertIsNotNone(mail_port_setting)
         self.assertEqual("ops@example.com", sender_setting.value)
+        self.assertEqual("https://profilmanager.example.com", app_base_url_setting.value)
+        self.assertEqual("smtp.example.com", mail_server_setting.value)
+        self.assertEqual("587", mail_port_setting.value)
 
 
 if __name__ == "__main__":
