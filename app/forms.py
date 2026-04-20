@@ -30,6 +30,24 @@ class LoginForm(FlaskForm):
     submit = SubmitField("Anmelden")
 
 
+
+
+class ForgotPasswordForm(FlaskForm):
+    email = StringField("E-Mail", validators=[DataRequired(), Email(), Length(max=120)])
+    submit = SubmitField("Reset-Link senden")
+
+
+class ResetPasswordForm(FlaskForm):
+    password = PasswordField("Neues Passwort", validators=[DataRequired(), Length(min=8, max=128)])
+    confirm_password = PasswordField(
+        "Neues Passwort bestätigen",
+        validators=[
+            DataRequired(),
+            EqualTo("password", message="Passwörter stimmen nicht überein"),
+        ],
+    )
+    submit = SubmitField("Passwort zurücksetzen")
+
 class UserForm(FlaskForm):
     username = StringField("Benutzername", validators=[DataRequired(), Length(max=80)])
     email = StringField("E-Mail", validators=[DataRequired(), Email(), Length(max=120)])
