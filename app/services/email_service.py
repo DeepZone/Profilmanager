@@ -31,7 +31,12 @@ class EmailService:
 
         with smtplib.SMTP(smtp_host, smtp_port) as smtp:
             if use_tls:
-                smtp.starttls()
+                try:
+                    smtp.starttls()
+                except smtplib.SMTPNotSupportedError:
+                    # Fallback für lokale SMTP-Server (z. B. MailHog),
+                    # die STARTTLS nicht anbieten.
+                    pass
             if username and password:
                 smtp.login(username, password)
             smtp.send_message(message)
