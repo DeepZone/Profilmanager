@@ -7,7 +7,7 @@ os.environ["SECRET_KEY"] = "test-secret"
 
 from app import create_app
 from app.extensions import db
-from app.models import Role, User
+from app.models import Role, Setting, User
 from app.services.reset_password_service import ResetPasswordService
 
 
@@ -67,6 +67,20 @@ class AuthPasswordResetTestCase(unittest.TestCase):
 
         self.assertEqual(200, response.status_code)
         mock_send.assert_called_once()
+
+    @patch("app.routes.auth.EmailService.send_mail")
+    def test_forgot_password_uses_sender_from_settings(self, mock_send):
+        db.session.add(Setting(key="mail_default_sender", value="custom-sender@example.com"))
+        db.session.commit()
+
+        response = self.client.post(
+            "/forgot-password",
+            data={"email": "reset@example.com"},
+            follow_redirects=True,
+        )
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual("custom-sender@example.com", mock_send.call_args.kwargs["sender"])
 
     def test_reset_password_with_valid_token_changes_password(self):
         token = ResetPasswordService.create_token(self.app.config["SECRET_KEY"], self.user.id)

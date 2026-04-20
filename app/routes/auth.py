@@ -2,7 +2,7 @@ from flask import Blueprint, current_app, flash, redirect, render_template, url_
 from flask_login import current_user, login_required, login_user, logout_user
 
 from app.forms import ForgotPasswordForm, LoginForm, ResetPasswordForm
-from app.models import AuditLog, User
+from app.models import AuditLog, Setting, User
 from app.extensions import db
 from app.services.email_service import EmailService
 from app.services.reset_password_service import ResetPasswordService
@@ -22,7 +22,7 @@ def _send_reset_mail(user: User, reset_url: str) -> None:
     EmailService.send_mail(
         smtp_host=current_app.config["MAIL_SERVER"],
         smtp_port=current_app.config["MAIL_PORT"],
-        sender=current_app.config["MAIL_DEFAULT_SENDER"],
+        sender=_resolve_mail_sender(),
         recipient=user.email,
         subject=subject,
         body=body,
@@ -31,6 +31,12 @@ def _send_reset_mail(user: User, reset_url: str) -> None:
         use_tls=current_app.config["MAIL_USE_TLS"],
         use_ssl=current_app.config["MAIL_USE_SSL"],
     )
+
+
+def _resolve_mail_sender() -> str:
+    configured_sender = Setting.query.filter_by(key="mail_default_sender").first()
+    sender = (configured_sender.value if configured_sender else "") or current_app.config["MAIL_DEFAULT_SENDER"]
+    return sender.strip()
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])
