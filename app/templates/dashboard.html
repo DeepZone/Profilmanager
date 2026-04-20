@@ -30,6 +30,28 @@
 </div>
 
 <div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Benutzerinformationen</h3>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-3"><strong>Username:</strong> {{ user_info.username }}</div>
+          <div class="col-md-3"><strong>Kürzel:</strong> {{ user_info.shortcode }}</div>
+          <div class="col-md-3"><strong>Rolle:</strong> {{ user_info.role }}</div>
+          <div class="col-md-3">
+            <strong>GitLab Verbindung:</strong>
+            <span class="badge badge-{{ user_info.gitlab_status.state }}">{{ user_info.gitlab_status.label }}</span>
+            <div class="small text-muted mt-1">{{ user_info.gitlab_status.message }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
   <div class="col-lg-8">
     <div class="card">
       <div class="card-header">

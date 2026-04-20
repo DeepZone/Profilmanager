@@ -4,7 +4,8 @@ from sqlalchemy import func
 
 from app.constants.european_countries import get_country_by_iso_code
 from app.extensions import db
-from app.models import GitLabMergeRequest, Profile, User
+from app.models import GitLabMergeRequest, Profile, Setting, User
+from app.services.gitlab_service import GitLabService, GitLabServiceError
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
@@ -51,6 +52,42 @@ def index():
             label = "Ohne Land"
         country_distribution.append({"label": label, "count": count})
 
+    gitlab_url = Setting.query.filter_by(key="gitlab_url").first()
+    token = (current_user.gitlab_token or "").strip()
+    gitlab_status = {
+        "label": "Nicht verbunden",
+        "state": "danger",
+        "message": "Kein persönlicher API-Token hinterlegt.",
+    }
+    if gitlab_url and gitlab_url.value and token:
+        try:
+            service = GitLabService(gitlab_url.value, token)
+            service.test_connection()
+            gitlab_status = {
+                "label": "Verbunden",
+                "state": "success",
+                "message": "GitLab-Verbindung ist aktiv.",
+            }
+        except GitLabServiceError as exc:
+            gitlab_status = {
+                "label": "Fehler",
+                "state": "danger",
+                "message": f"GitLab-Verbindung fehlgeschlagen: {exc}",
+            }
+    elif not gitlab_url or not gitlab_url.value:
+        gitlab_status = {
+            "label": "Nicht konfiguriert",
+            "state": "warning",
+            "message": "GitLab-URL ist nicht gesetzt.",
+        }
+
+    user_info = {
+        "username": current_user.username,
+        "shortcode": current_user.shortcode,
+        "role": current_user.role.name if current_user.role else "-",
+        "gitlab_status": gitlab_status,
+    }
+
     return render_template(
         "dashboard.html",
         total_profile_count=total_profile_count,
@@ -58,4 +95,5 @@ def index():
         user_count=user_count,
         mr_count=mr_count,
         country_distribution=country_distribution,
+        user_info=user_info,
     )
