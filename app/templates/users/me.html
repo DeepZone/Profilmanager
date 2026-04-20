@@ -20,6 +20,14 @@
       </div>
 
       <hr>
+      <h5>GitLab</h5>
+      <div class="form-group">
+        {{ form.gitlab_token.label }}
+        {{ form.gitlab_token(class='form-control', placeholder='Persönlichen GitLab API Token eingeben') }}
+        <small class="form-text text-muted">Leer lassen, wenn der bestehende Token unverändert bleiben soll.</small>
+      </div>
+
+      <hr>
       <h5>Passwort ändern</h5>
       <div class="form-group">
         {{ form.current_password.label }}

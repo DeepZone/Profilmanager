@@ -21,13 +21,9 @@ def gitlab():
 
     current_url = Setting.query.filter_by(key="gitlab_url").first()
     current_project = Setting.query.filter_by(key="gitlab_project_id").first()
-    current_token = Setting.query.filter_by(key="gitlab_token").first()
-
     if form.validate_on_submit():
         _save_setting("gitlab_url", form.gitlab_url.data)
         _save_setting("gitlab_project_id", form.gitlab_project_id.data)
-        if form.gitlab_token.data:
-            _save_setting("gitlab_token", form.gitlab_token.data)
 
         db.session.add(
             AuditLog(user_id=current_user.id, action="gitlab_config", details="GitLab-Konfig geändert")
@@ -45,11 +41,9 @@ def gitlab():
     major_form.major.data = version.major
     minor_form.minor.data = version.minor
 
-    token_set = bool(current_token and current_token.value)
     return render_template(
         "settings/gitlab.html",
         form=form,
-        token_set=token_set,
         current_version=version.as_string(),
         major_form=major_form,
         minor_form=minor_form,
@@ -61,14 +55,14 @@ def gitlab():
 @admin_required
 def test_gitlab():
     url = Setting.query.filter_by(key="gitlab_url").first()
-    token = Setting.query.filter_by(key="gitlab_token").first()
+    token = (current_user.gitlab_token or "").strip()
 
-    if not url or not token or not url.value or not token.value:
-        flash("GitLab URL und Token müssen gesetzt sein.", "danger")
+    if not url or not url.value or not token:
+        flash("GitLab URL und persönlicher API Token im Benutzerprofil müssen gesetzt sein.", "danger")
         return redirect(url_for("settings.gitlab"))
 
     try:
-        service = GitLabService(url.value, token.value)
+        service = GitLabService(url.value, token)
         user = service.test_connection()
         flash(f"Verbindung erfolgreich. Eingeloggt als {user.get('username')}", "success")
     except GitLabServiceError as exc:
