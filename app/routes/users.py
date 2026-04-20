@@ -27,7 +27,7 @@ def index():
     return render_template("users/index.html", pagination=pagination, q=q)
 
 
-@users_bp.route("/me")
+@users_bp.route("/me", methods=["GET", "POST"])
 @login_required
 def me():
     form = SelfProfileForm(obj=current_user)
