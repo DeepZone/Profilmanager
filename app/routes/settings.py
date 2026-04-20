@@ -15,10 +15,19 @@ settings_bp = Blueprint("settings", __name__, url_prefix="/settings")
 @admin_required
 def index():
     form = GeneralSettingsForm()
-    current_sender = Setting.query.filter_by(key="mail_default_sender").first()
 
     if form.validate_on_submit():
+        mail_password = (form.mail_password.data or "").strip()
         _save_setting("mail_default_sender", form.mail_default_sender.data.strip())
+        _save_setting("app_base_url", form.app_base_url.data.strip())
+        _save_setting("mail_server", form.mail_server.data.strip())
+        _save_setting("mail_port", form.mail_port.data.strip())
+        _save_setting("mail_username", (form.mail_username.data or "").strip())
+        _save_setting("mail_use_tls", "true" if form.mail_use_tls.data else "false")
+        _save_setting("mail_use_ssl", "true" if form.mail_use_ssl.data else "false")
+        if mail_password:
+            _save_setting("mail_password", mail_password)
+
         db.session.add(
             AuditLog(
                 user_id=current_user.id,
@@ -30,10 +39,14 @@ def index():
         flash("Einstellungen gespeichert.", "success")
         return redirect(url_for("settings.index"))
 
-    if current_sender and current_sender.value:
-        form.mail_default_sender.data = current_sender.value
-    else:
-        form.mail_default_sender.data = current_app.config["MAIL_DEFAULT_SENDER"]
+    form.app_base_url.data = _setting_or_config("app_base_url", "APP_BASE_URL")
+    form.mail_default_sender.data = _setting_or_config("mail_default_sender", "MAIL_DEFAULT_SENDER")
+    form.mail_server.data = _setting_or_config("mail_server", "MAIL_SERVER")
+    form.mail_port.data = str(_setting_or_config("mail_port", "MAIL_PORT"))
+    form.mail_username.data = _setting_or_config("mail_username", "MAIL_USERNAME")
+    form.mail_password.data = ""
+    form.mail_use_tls.data = _setting_bool_or_config("mail_use_tls", "MAIL_USE_TLS")
+    form.mail_use_ssl.data = _setting_bool_or_config("mail_use_ssl", "MAIL_USE_SSL")
 
     return render_template("settings/index.html", form=form)
 
@@ -92,3 +105,17 @@ def _save_setting(key, value):
         setting.value = value
     else:
         db.session.add(Setting(key=key, value=value))
+
+
+def _setting_or_config(setting_key: str, config_key: str):
+    configured = Setting.query.filter_by(key=setting_key).first()
+    if configured and configured.value not in (None, ""):
+        return configured.value
+    return current_app.config.get(config_key)
+
+
+def _setting_bool_or_config(setting_key: str, config_key: str) -> bool:
+    configured = Setting.query.filter_by(key=setting_key).first()
+    if configured and configured.value is not None:
+        return configured.value.strip().lower() == "true"
+    return bool(current_app.config.get(config_key))

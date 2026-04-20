@@ -8,9 +8,39 @@
         <div class="card-body">
           {{ form.hidden_tag() }}
           <div class="form-group">
+            {{ form.app_base_url.label }}
+            {{ form.app_base_url(class='form-control', placeholder='https://profilmanager.example.com') }}
+            <small class="form-text text-muted">Diese URL wird in E-Mails verwendet (z. B. Passwort-Reset-Link).</small>
+          </div>
+          <div class="form-group">
             {{ form.mail_default_sender.label }}
             {{ form.mail_default_sender(class='form-control', placeholder='noreply@profilmanager.local') }}
             <small class="form-text text-muted">Diese Adresse wird als Absender für System-E-Mails verwendet (z. B. Passwort-Reset).</small>
+          </div>
+          <div class="form-group">
+            {{ form.mail_server.label }}
+            {{ form.mail_server(class='form-control', placeholder='smtp.example.com') }}
+          </div>
+          <div class="form-group">
+            {{ form.mail_port.label }}
+            {{ form.mail_port(class='form-control', placeholder='587') }}
+          </div>
+          <div class="form-group">
+            {{ form.mail_username.label }}
+            {{ form.mail_username(class='form-control', placeholder='optional') }}
+          </div>
+          <div class="form-group">
+            {{ form.mail_password.label }}
+            {{ form.mail_password(class='form-control', placeholder='Leer lassen, um unverändert zu lassen') }}
+            <small class="form-text text-muted">Passwort wird nur aktualisiert, wenn hier ein Wert eingetragen wird.</small>
+          </div>
+          <div class="form-group form-check">
+            {{ form.mail_use_tls(class='form-check-input') }}
+            {{ form.mail_use_tls.label(class='form-check-label') }}
+          </div>
+          <div class="form-group form-check">
+            {{ form.mail_use_ssl(class='form-check-input') }}
+            {{ form.mail_use_ssl.label(class='form-check-label') }}
           </div>
         </div>
         <div class="card-footer">{{ form.submit(class='btn btn-info') }}</div>

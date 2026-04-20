@@ -20,23 +20,40 @@ def _send_reset_mail(user: User, reset_url: str) -> None:
     )
 
     EmailService.send_mail(
-        smtp_host=current_app.config["MAIL_SERVER"],
-        smtp_port=current_app.config["MAIL_PORT"],
+        smtp_host=_setting_or_config("mail_server", "MAIL_SERVER"),
+        smtp_port=int(_setting_or_config("mail_port", "MAIL_PORT")),
         sender=_resolve_mail_sender(),
         recipient=user.email,
         subject=subject,
         body=body,
-        username=current_app.config.get("MAIL_USERNAME"),
-        password=current_app.config.get("MAIL_PASSWORD"),
-        use_tls=current_app.config["MAIL_USE_TLS"],
-        use_ssl=current_app.config["MAIL_USE_SSL"],
+        username=_setting_or_config("mail_username", "MAIL_USERNAME"),
+        password=_setting_or_config("mail_password", "MAIL_PASSWORD"),
+        use_tls=_setting_bool_or_config("mail_use_tls", "MAIL_USE_TLS"),
+        use_ssl=_setting_bool_or_config("mail_use_ssl", "MAIL_USE_SSL"),
     )
 
 
 def _resolve_mail_sender() -> str:
-    configured_sender = Setting.query.filter_by(key="mail_default_sender").first()
-    sender = (configured_sender.value if configured_sender else "") or current_app.config["MAIL_DEFAULT_SENDER"]
+    sender = _setting_or_config("mail_default_sender", "MAIL_DEFAULT_SENDER")
     return sender.strip()
+
+
+def _resolve_app_base_url() -> str:
+    return str(_setting_or_config("app_base_url", "APP_BASE_URL")).rstrip("/")
+
+
+def _setting_or_config(setting_key: str, config_key: str):
+    configured = Setting.query.filter_by(key=setting_key).first()
+    if configured and configured.value not in (None, ""):
+        return configured.value
+    return current_app.config.get(config_key)
+
+
+def _setting_bool_or_config(setting_key: str, config_key: str) -> bool:
+    configured = Setting.query.filter_by(key=setting_key).first()
+    if configured and configured.value is not None:
+        return configured.value.strip().lower() == "true"
+    return bool(current_app.config.get(config_key))
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])
@@ -68,9 +85,7 @@ def forgot_password():
 
         if user and user.active and current_app.config["MAIL_ENABLED"]:
             token = ResetPasswordService.create_token(current_app.config["SECRET_KEY"], user.id)
-            reset_url = f"{current_app.config['APP_BASE_URL'].rstrip('/')}" + url_for(
-                "auth.reset_password", token=token
-            )
+            reset_url = _resolve_app_base_url() + url_for("auth.reset_password", token=token)
             try:
                 _send_reset_mail(user, reset_url)
                 db.session.add(

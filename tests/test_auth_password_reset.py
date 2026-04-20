@@ -82,6 +82,40 @@ class AuthPasswordResetTestCase(unittest.TestCase):
         self.assertEqual(200, response.status_code)
         self.assertEqual("custom-sender@example.com", mock_send.call_args.kwargs["sender"])
 
+    @patch("app.routes.auth._send_reset_mail")
+    def test_forgot_password_uses_app_base_url_from_settings(self, mock_send_reset_mail):
+        db.session.add(Setting(key="app_base_url", value="https://profilmanager.example.com"))
+        db.session.commit()
+
+        self.client.post(
+            "/forgot-password",
+            data={"email": "reset@example.com"},
+            follow_redirects=True,
+        )
+
+        reset_url = mock_send_reset_mail.call_args.args[1]
+        self.assertTrue(reset_url.startswith("https://profilmanager.example.com/reset-password/"))
+
+    @patch("app.routes.auth.EmailService.send_mail")
+    def test_forgot_password_uses_smtp_from_settings(self, mock_send):
+        db.session.add(Setting(key="mail_server", value="smtp.example.com"))
+        db.session.add(Setting(key="mail_port", value="587"))
+        db.session.add(Setting(key="mail_username", value="mailer-user"))
+        db.session.add(Setting(key="mail_password", value="mailer-password"))
+        db.session.add(Setting(key="mail_use_tls", value="true"))
+        db.session.add(Setting(key="mail_use_ssl", value="false"))
+        db.session.commit()
+
+        self.client.post(
+            "/forgot-password",
+            data={"email": "reset@example.com"},
+            follow_redirects=True,
+        )
+
+        self.assertEqual("smtp.example.com", mock_send.call_args.kwargs["smtp_host"])
+        self.assertEqual(587, mock_send.call_args.kwargs["smtp_port"])
+        self.assertEqual("mailer-user", mock_send.call_args.kwargs["username"])
+
     def test_reset_password_with_valid_token_changes_password(self):
         token = ResetPasswordService.create_token(self.app.config["SECRET_KEY"], self.user.id)
 
