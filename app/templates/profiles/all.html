@@ -2,8 +2,9 @@
 {% block content %}
 <div class="card">
   <div class="card-header">
-    <h3 class="card-title">Alle Profile</h3>
-    <form class="form-inline mt-2" method="get">
+    <h3 class="card-title mb-2">Alle Profile</h3>
+    <div class="clearfix"></div>
+    <form class="form-inline" method="get">
       <input class="form-control mr-2" name="q" placeholder="Suche (Name/Provider)" value="{{ q }}">
       {% if user_id %}
       <input type="hidden" name="user_id" value="{{ user_id }}">
