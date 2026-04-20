@@ -162,21 +162,27 @@ python run.py
 
 Für die Funktion `Passwort vergessen` müssen SMTP-Parameter gesetzt sein (z. B. MailHog lokal).
 
-Beispiel lokal mit MailHog:
+### Mit Docker Compose (empfohlen)
 
-```bash
-docker run --rm -p 1025:1025 -p 8025:8025 mailhog/mailhog
-```
-
-Dann in `.env`:
+`docker compose up` startet MailHog automatisch mit. In `.env` sollte dafür stehen:
 
 ```bash
 MAIL_ENABLED=true
-MAIL_SERVER=localhost
+MAIL_SERVER=mailhog
 MAIL_PORT=1025
 MAIL_USE_TLS=false
 MAIL_DEFAULT_SENDER=noreply@profilmanager.local
 APP_BASE_URL=http://localhost:5000
 ```
+
+### Ohne Docker Compose
+
+Starte MailHog lokal:
+
+```bash
+docker run --rm -p 1025:1025 -p 8025:8025 mailhog/mailhog
+```
+
+Dann in `.env` stattdessen `MAIL_SERVER=localhost` verwenden.
 
 Standard-Gültigkeit des Reset-Links: `RESET_PASSWORD_TOKEN_MAX_AGE=3600` (Sekunden).
